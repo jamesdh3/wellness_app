@@ -1,0 +1,91 @@
+
+WindowManager:
+    MainWindow:
+        name: 'main'
+    TimerScreen:
+        name : 'timer' 
+    StatScreen: 
+        name : 'stat'
+
+<MainWindow>:
+    GridLayout:
+        cols:1
+
+        Button:
+            text: "LOG"
+            on_release: 
+                app.root.current = "timer"
+                root.manager.transition.direction = "left" 
+        Button:
+            text: "Stats"
+            on_release:
+                app.root.current = "stat" 
+                root.manager.transition.direction = "left"
+
+
+<StatScreen>:     
+    BoxLayout:
+        id: stat_fig
+        size_hint_y: .8
+        pos_hint: {'top':1}
+
+    Button: 
+        id: stat_back 
+        text: "Back"
+        size_hint_y: .2 
+        on_press: 
+            root.manager.current = 'main' 
+
+<Graph>: 
+
+
+<TimerScreen>:
+    job: root.number 
+
+    # Assigning the alignment to buttons
+    BoxLayout
+        
+        orientation: 'vertical'
+ 
+        # Create Button
+         
+        TextInput: 
+            id: activity_name 
+            multiline: False 
+
+        Button:
+            text: 'start'
+            on_press: root.start()
+             
+        Button:
+            text: 'stop'
+            on_press: root.stop()
+             
+        Button:
+            text: 'Reset'
+            on_press: root.number = 0
+        
+        Button: 
+            text: 'Save'
+            on_press: 
+                root.stop() 
+                root.update_and_save({root.activity_col: activity_name.text, root.time_col : root.number, root.date_col : root.datestamp()})
+
+        Button: 
+            text: 'Back' 
+            on_press: 
+                root.stop() 
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'main'
+
+    # Create the Label
+        Label:
+            text: str(round(root.number))
+            text_size: self.size
+            halign: 'center'
+            valign: 'middle'
+
+
+    
+
+
