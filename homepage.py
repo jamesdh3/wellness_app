@@ -16,16 +16,6 @@ import pandas as pd
 # date time 
 from datetime import datetime 
 
-# plot stuff 
-# random data points 
-x = [1,2,3,4] 
-y = [5,10,15,20]
-
-plt.plot(x,y) 
-
-plt.ylabel('Y axis')
-plt.xlabel('X axis')
-
 class MainWindow(Screen):
     pass
 
@@ -89,23 +79,46 @@ class TimerScreen(Screen):
 class StatScreen(Screen): 
     def __init__(self, **kwargs):                                      
         super(StatScreen, self).__init__(**kwargs)
-        input_file = pd.read_csv('C:/Users/baba/Documents/phone_apps/tmp_db/test_db_graph.csv')
-        file_cols = input_file.columns 
-        Clock.schedule_once(self.plot)
+        self.input_file = pd.read_csv('C:/Users/baba/Documents/phone_apps/tmp_db/test_db_graph.csv')
+        self.file_cols = self.input_file.columns 
+        self.activites = self.input_file['activity'].unique().tolist() 
+        Clock.schedule_once(self.create_plot)
 
-    def parse_data(self): 
-        pass
-            
+    def parse_data(self, x_col, y_col):
+        ''' This method handles parsing the db and returning the parameters of interest. 
 
-    def create_plot(self): 
-        pass
+            Returns: 
+                dictionary 
+        '''
+        # get cols 
+        activities = self.input_file['activity'].unique().tolist() 
 
-    def plot(self, *args): 
-        
+        # create tuples for each unique activity-data_point 
+        tuple_dict = dict() 
+        for a in activities: 
+            # subset to activity 
+            this_activity = self.input_file.loc[self.input_file['activity'].eq(a), ]
+
+            # create tuple for each entry 
+            this_activity['xy_vals'] = list(zip(this_activity[x_col], this_activity[y_col])) # note: these colu
+            xy_vals = this_activity['xy_vals'].unique().tolist() 
+
+            # save to dict 
+            tuple_dict[a] = xy_vals
+        return tuple_dict    
+
+
+    def create_plot(self, *args): 
+        '''
+        '''
+        # loop through each activity 
+        for a in self.activites: 
+            tmp_vals = self.input_file.loc[self.input_file['activity'].eq(a), ]
+            plt.plot(tmp_vals['date_inserted'], tmp_vals['time_elapsed'], label=a)
+
+        plt.legend() 
         self.ids.stat_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
-
-    
-    
+         
          
 kv = Builder.load_file('main.kv')
 class MyMainApp(App):
