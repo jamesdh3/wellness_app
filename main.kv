@@ -69,7 +69,7 @@ WindowManager:
             text: 'Save'
             on_press: 
                 root.stop() 
-                root.update_and_save({root.activity_col: activity_name.text, root.time_col : root.number, root.date_col : root.datestamp()})
+                root.update_and_save({root.activity_col: activity_name.text, root.time_col : root.number, root.date_col : root.date, root.time_inserted : root.time})
 
         Button: 
             text: 'Back' 

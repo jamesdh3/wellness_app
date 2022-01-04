@@ -37,11 +37,13 @@ class TimerScreen(Screen):
         
         # date on start 
         self.date = str(datetime.now().date())
+        self.time = str(datetime.now().time())
 
         # file cols 
         self.activity_col = 'activity'
         self.time_col = 'time_elapsed' 
         self.date_col = 'date_inserted'
+        self.time_inserted = 'time_inserted'
 
         """ don't need this snipet as of now 
         # create clock and increment time 
@@ -109,10 +111,26 @@ class TimerScreen(Screen):
 class StatScreen(Screen): 
     def __init__(self, **kwargs):                                      
         super(StatScreen, self).__init__(**kwargs)
-        self.input_file = pd.read_csv('C:/Users/baba/Documents/phone_apps/tmp_db/test_db_graph.csv')
+
+        # file metadata 
+        self.filename = 'test_db'
+        self.filetype = 'csv'
+        self.workdir = 'C:/Users/baba/Documents/phone_apps/tmp_db'
+
+        # file cols 
+        self.activity_col = 'activity'
+        self.time_col = 'time_elapsed' 
+        self.date_col = 'date_inserted'
+        self.time_inserted = 'time_inserted'
+
+
+        # info on input file 
+        self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype))
         self.file_cols = self.input_file.columns 
         self.activites = self.input_file['activity'].unique().tolist() 
-        Clock.schedule_once(self.create_plot)
+
+        # schedule and run everything after deploying/build 
+        Clock.schedule_once(self.create_stacked_bar_plot)
 
     def parse_data(self, x_col, y_col):
         ''' This method handles parsing the db and returning the parameters of interest. 
@@ -138,7 +156,34 @@ class StatScreen(Screen):
         return tuple_dict    
 
 
-    def create_plot(self, *args): 
+    def format_data(): 
+        ''' format the data on build so it's ready for visualizations 
+        '''
+        pass 
+
+
+    def create_stacked_bar_plot(self, *args): 
+        '''
+        '''
+        stack_plot, sx = plt.subplots()
+        sx.bar(self.input_file.loc[self.input_file['activity'].eq('meditate'), self.date_col].tolist(), # groups (x-axis) 
+               self.input_file.loc[self.input_file['activity'].eq('meditate'), self.time_col].tolist(), # values 
+               0.35, # assigning width 
+               label='meditate' 
+        )
+        sx.bar(self.input_file.loc[self.input_file['activity'].eq('workout'), self.date_col].tolist(),
+               self.input_file.loc[self.input_file['activity'].eq('workout'), self.time_col].tolist(),
+               0.35,
+               bottom=self.input_file.loc[self.input_file['activity'].eq('meditate'), self.time_col].tolist(),
+               label='workout'
+        )
+
+        sx.set_ylabel(self.time_col)
+        sx.set_title('Time by activity')
+        sx.legend() 
+        self.ids.stat_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+
+    def create_line_plot(self, *args): 
         '''
         '''
         # loop through each activity 
@@ -152,6 +197,11 @@ class StatScreen(Screen):
          
 kv = Builder.load_file('main.kv')
 class MyMainApp(App):
+    def parse_data(): 
+        '''
+        '''
+        pass 
+
     def build(self): 
         return kv
         
