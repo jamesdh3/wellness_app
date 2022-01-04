@@ -29,16 +29,33 @@ class TimerScreen(Screen):
 
         # returns a project object that allows me to refer to the parent class using 'super' 
         super(TimerScreen, self).__init__(**kwargs)
+        
+        # file metadata 
+        self.filename = 'test_db'
+        self.filetype = 'csv'
+        self.workdir = 'C:/Users/baba/Documents/phone_apps/tmp_db'
+        
+        # date on start 
+        self.date = str(datetime.now().date())
+
+        # file cols 
         self.activity_col = 'activity'
         self.time_col = 'time_elapsed' 
         self.date_col = 'date_inserted'
-        """
+
+        """ don't need this snipet as of now 
         # create clock and increment time 
         # NOTE: .1 = 1 sec
         Clock.schedule_interval(self.increment_time, .1) 
 
         self.increment_time(0) 
         """
+
+    def get_entries(self): 
+        '''
+        '''
+        pass 
+
 
     def update_and_save(self, entries): 
         ''' updates .csv file or db by appending new values 
@@ -51,11 +68,24 @@ class TimerScreen(Screen):
 
             NOTE: this will need to be updated once ready for android deployment 
         '''
-        date_stamp = datetime.now() 
-        file = pd.read_csv('C:/Users/baba/Documents/phone_apps/tmp_db/test_db.csv')
+        this_date = str(datetime.now().date())
+        file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir,
+                                                        fn=self.filename,
+                                                        ft=self.filetype)
+        )
+
+        # archive 
+        file.to_csv('{dir}/{fn}_{dt}.{ft}'.format(dir=self.workdir, 
+                                                  fn=self.filename,
+                                                  dt=self.date,
+                                                  ft=self.filetype)
+        )
 
         # update & export  
-        file.append(entries, ignore_index=True).to_csv('C:/Users/baba/Documents/phone_apps/tmp_db/test_db_updated.csv')
+        file.append(entries, ignore_index=True).to_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir,
+                                                                                fn=self.filename,
+                                                                                ft=self.filetype)
+        )
 
 
     def increment_time(self, interval): 
