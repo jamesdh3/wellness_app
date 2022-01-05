@@ -12,6 +12,7 @@ from kivy.properties import ObjectProperty
 # we're going to want to use some pandas for data manipulation and viz 
 # NOTE: will need to look at how ggplot and phone apps work together 
 import pandas as pd 
+import numpy as np 
 
 # date time 
 from datetime import datetime 
@@ -127,7 +128,7 @@ class StatScreen(Screen):
         # info on input file 
         self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype))
         self.file_cols = self.input_file.columns 
-        self.activites = self.input_file['activity'].unique().tolist() 
+        self.activities = self.input_file['activity'].unique().tolist() 
 
         # schedule and run everything after deploying/build 
         Clock.schedule_once(self.create_stacked_bar_plot)
@@ -163,28 +164,38 @@ class StatScreen(Screen):
 
 
     def create_stacked_bar_plot(self, *args): 
-        '''
+        ''' stacked bar plots to visualize proportion of time spent among different activities 
+            NOTE: will need to order these in some fashion 
         '''
         stack_plot, sx = plt.subplots()
-        sx.bar(self.input_file.loc[self.input_file['activity'].eq('meditate'), self.date_col].tolist(), # groups (x-axis) 
-               self.input_file.loc[self.input_file['activity'].eq('meditate'), self.time_col].tolist(), # values 
-               0.35, # assigning width 
-               label='meditate' 
-        )
-        sx.bar(self.input_file.loc[self.input_file['activity'].eq('workout'), self.date_col].tolist(),
-               self.input_file.loc[self.input_file['activity'].eq('workout'), self.time_col].tolist(),
-               0.35,
-               bottom=self.input_file.loc[self.input_file['activity'].eq('meditate'), self.time_col].tolist(),
-               label='workout'
-        )
 
+        for a in self.activities: 
+            if (self.activities.index(a) == 0): 
+                sx.bar(self.input_file.loc[self.input_file[self.activity_col].eq(a), self.date_col].tolist(), # groups (x-axis) 
+                    self.input_file.loc[self.input_file[self.activity_col].eq(a), self.time_col], # values 
+                    0.35, # assigning width 
+                    label=a
+                )
+                bottom_vals = np.array(self.input_file.loc[self.input_file[self.activity_col].eq(a), self.time_col])
+            else: 
+                prev_activity = self.activities[self.activities.index(a) - 1] 
+                sx.bar(self.input_file.loc[self.input_file[self.activity_col].eq(a), self.date_col].tolist(), # groups (x-axis) 
+                    self.input_file.loc[self.input_file[self.activity_col].eq(a), self.time_col], # values 
+                    0.35, # assigning width 
+                    bottom= bottom_vals, 
+                    label=a
+                )
+                bottom_vals  = bottom_vals + np.array(self.input_file.loc[self.input_file[self.activity_col].eq(a), self.time_col])
+
+
+        # set labels and plot 
         sx.set_ylabel(self.time_col)
         sx.set_title('Time by activity')
         sx.legend() 
         self.ids.stat_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
     def create_line_plot(self, *args): 
-        '''
+        ''' line plots grouped by activity. to easily visualize trends over time 
         '''
         # loop through each activity 
         for a in self.activites: 
