@@ -4,8 +4,13 @@ WindowManager:
         name: 'main'
     TimerScreen:
         name : 'timer' 
-    StatScreen: 
-        name : 'stat'
+    LinePlotScreen: 
+        name : 'line_plot_screen'
+    StackedBoxPlotScreen: 
+        name : 'box_plot_screen'
+    TotalsBarPlotScreen: 
+        name : 'bar_plot_total_screen' 
+
 
 <MainWindow>:
     GridLayout:
@@ -19,26 +24,77 @@ WindowManager:
         Button:
             text: "Stats"
             on_release:
-                app.root.current = "stat" 
+                app.root.current = "bar_plot_total_screen" 
                 root.manager.transition.direction = "left"
 
 
-<StatScreen>:     
+<TotalsBarPlotScreen>: 
+    BoxLayout: 
+        id: box_plot_total_fig
+        size_hint_y: .8
+        pos_hint: {'top':1} 
+    
+    BoxLayout: 
+        cols: 2 
+
+        Button: 
+            id: stat_back 
+            text: "Back"
+            size_hint_y: .2 
+            on_press: 
+                root.manager.current = 'main'
+        
+        Button: 
+            id: next_plot_stacked_bar
+            text: "Next Plot" 
+            size_hint_y: .2 
+            on_press: 
+                root.manager.current = 'line_plot_screen' 
+                root.manager.transition.direction = 'left'
+
+
+<LinePlotScreen>:     
     BoxLayout:
-        id: stat_fig
+        id: line_plot_fig
         size_hint_y: .8
         pos_hint: {'top':1}
 
-    Button: 
-        id: stat_back 
-        text: "Back"
-        size_hint_y: .2 
-        on_press: 
-            root.manager.current = 'main' 
+    BoxLayout:
+        cols: 2 
 
-<LinePlotScreen>:
+        Button: 
+            id: stat_back 
+            text: "Back"
+            size_hint_y: .2 
+            on_press: 
+                root.manager.current = 'bar_plot_total_screen'
+        
+        Button: 
+            id: next_plot_stacked_bar
+            text: "Next Plot" 
+            size_hint_y: .2 
+            on_press: 
+                root.manager.current = 'box_plot_screen' 
+                root.manager.transition.direction = 'left'
+
+    
 
 <StackedBoxPlotScreen>: 
+    BoxLayout:
+        id: stacked_box_fig
+        size_hint_y: .8
+        pos_hint: {'top':1}
+
+    BoxLayout:
+        cols : 2 
+
+        Button: 
+            id: stat_back 
+            text: "Back"
+            size_hint_y: .2 
+            on_press: 
+                root.manager.current = 'line_plot_screen'
+                root.manager.transition.direction = 'right' 
 
 
 <TimerScreen>:

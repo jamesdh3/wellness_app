@@ -97,7 +97,7 @@ class TimerScreen(Screen):
         '''
         self.number += .1 
 
-    # start button     
+    # start button      
     def start(self): 
         Clock.unschedule(self.increment_time) 
         Clock.schedule_interval(self.increment_time, .1) 
@@ -108,10 +108,9 @@ class TimerScreen(Screen):
     def datestamp(self): 
         return datetime.now() 
 
-
-class StatScreen(Screen): 
-    def __init__(self, **kwargs):                                      
-        super(StatScreen, self).__init__(**kwargs)
+class TotalsBarPlotScreen(Screen): 
+    def __init__(self, **kwargs): 
+        super(TotalsBarPlotScreen, self).__init__(**kwargs) 
 
         # file metadata 
         self.filename = 'test_db'
@@ -131,7 +130,51 @@ class StatScreen(Screen):
         self.activities = self.input_file['activity'].unique().tolist() 
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_stacked_bar_plot)
+        Clock.schedule_once(self.create_bar_plot_total)
+
+    def create_bar_plot_total(self, *args): 
+        '''
+        '''
+        line_plot, bx = plt.subplots() 
+        for a in self.activities: 
+
+            bx.bar(str(a), # groups (x-axis) 
+                self.input_file.loc[self.input_file[self.activity_col].eq(a), self.time_col], # values 
+                0.35, # assigning width 
+                label=a
+            )
+
+        # set labels and plot 
+        bx.set_ylabel(self.time_col)
+        bx.set_title('Total time grouped by activity')
+        bx.legend() 
+        self.ids.box_plot_total_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+
+
+
+class LinePlotScreen(Screen): 
+    def __init__(self, **kwargs):                                      
+        super(LinePlotScreen, self).__init__(**kwargs)
+
+        # file metadata 
+        self.filename = 'test_db'
+        self.filetype = 'csv'
+        self.workdir = 'C:/Users/baba/Documents/phone_apps/tmp_db'
+
+        # file cols 
+        self.activity_col = 'activity'
+        self.time_col = 'time_elapsed' 
+        self.date_col = 'date_inserted'
+        self.time_inserted = 'time_inserted'
+
+
+        # info on input file 
+        self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype))
+        self.file_cols = self.input_file.columns 
+        self.activities = self.input_file['activity'].unique().tolist() 
+
+        # schedule and run everything after deploying/build 
+        Clock.schedule_once(self.create_line_plot)
 
     def parse_data(self, x_col, y_col):
         ''' This method handles parsing the db and returning the parameters of interest. 
@@ -162,6 +205,46 @@ class StatScreen(Screen):
         '''
         pass 
 
+    def create_line_plot(self, *args): 
+        ''' line plots grouped by activity. to easily visualize trends over time 
+        '''
+        line_plot, lx = plt.subplots() 
+
+        # loop through each activity 
+        for a in self.activities: 
+            tmp_vals = self.input_file.loc[self.input_file['activity'].eq(a), ]
+            plt.plot(tmp_vals['date_inserted'], tmp_vals['time_elapsed'], label=a)
+
+        lx.legend() 
+        lx.set_ylabel('Time (seconds)')
+        lx.set_xlabel('Date')
+        lx.set_title('Time spent over time')
+        self.ids.line_plot_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+
+
+class StackedBoxPlotScreen(Screen): 
+    def __init__(self, **kwargs):                                      
+        super(StackedBoxPlotScreen, self).__init__(**kwargs)
+
+        # file metadata 
+        self.filename = 'test_db'
+        self.filetype = 'csv'
+        self.workdir = 'C:/Users/baba/Documents/phone_apps/tmp_db'
+
+        # file cols 
+        self.activity_col = 'activity'
+        self.time_col = 'time_elapsed' 
+        self.date_col = 'date_inserted'
+        self.time_inserted = 'time_inserted'
+
+
+        # info on input file 
+        self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype))
+        self.file_cols = self.input_file.columns 
+        self.activities = self.input_file['activity'].unique().tolist() 
+
+        # schedule and run everything after deploying/build 
+        Clock.schedule_once(self.create_stacked_bar_plot)
 
     def create_stacked_bar_plot(self, *args): 
         ''' stacked bar plots to visualize proportion of time spent among different activities 
@@ -190,20 +273,10 @@ class StatScreen(Screen):
 
         # set labels and plot 
         sx.set_ylabel(self.time_col)
-        sx.set_title('Time by activity')
+        sx.set_title('Total time grouped by day')
         sx.legend() 
-        self.ids.stat_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+        self.ids.stacked_box_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
-    def create_line_plot(self, *args): 
-        ''' line plots grouped by activity. to easily visualize trends over time 
-        '''
-        # loop through each activity 
-        for a in self.activites: 
-            tmp_vals = self.input_file.loc[self.input_file['activity'].eq(a), ]
-            plt.plot(tmp_vals['date_inserted'], tmp_vals['time_elapsed'], label=a)
-
-        plt.legend() 
-        self.ids.stat_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
          
          
 kv = Builder.load_file('main.kv')
