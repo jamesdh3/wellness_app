@@ -1,9 +1,12 @@
+#:import utils kivy.utils
 
 WindowManager:
     MainWindow:
         name: 'main'
+    SummStatScreen: 
+        name : "summ_stats_screen" 
     TimerScreen:
-        name : 'timer' 
+        name : 'timer_screen' 
     LinePlotScreen: 
         name : 'line_plot_screen'
     StackedBoxPlotScreen: 
@@ -13,20 +16,77 @@ WindowManager:
 
 
 <MainWindow>:
-    GridLayout:
-        cols:1
+    BoxLayout:
+        canvas.before:
+            Color:
+                rgb: utils.get_color_from_hex(root.ui.hex_background)
+            Rectangle: 
+                size: self.size
+        Label: 
+            size_hint: 1, 1
+            text:
+                "Flow Time"
+            color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
 
+    GridLayout:
+        cols:3
+        size_hint: 1, 0.25
         Button:
             text: "LOG"
+            background_color:
+                utils.get_color_from_hex(root.ui.hex_main_color) 
             on_release: 
-                app.root.current = "timer"
+                app.root.current = "timer_screen"
+                root.manager.transition.direction = "left" 
+        Button: 
+            text: "Summary" 
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+            on_release: 
+                app.root.current="summ_stats_screen" 
                 root.manager.transition.direction = "left" 
         Button:
-            text: "Stats"
+            text: "Visualize"
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[2]) 
             on_release:
                 app.root.current = "bar_plot_total_screen" 
                 root.manager.transition.direction = "left"
 
+<SummStatScreen>: 
+    GridLayout: 
+        canvas.before:
+            Color:
+                rgb: utils.get_color_from_hex(root.ui.hex_background)
+            Rectangle: 
+                size: self.size
+        size_hint: 1, 1
+        cols: 2 
+
+        Label: # mean time acitivty 
+            text: 'avg time (sec): {}'.format(root.get_activity_mean('meditate'))
+            color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+        Label: # most time activity
+            text: 'most time spent on {act}: {t} (sec). on day: {d}'.format(act='meditate', t=root.get_activity_mean('meditate'), d=root.get_activity_date_of_max('meditate'))
+            color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+        Label: # longest streak activity 
+            color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+            text: 'longest streak for activity {act}: {d} days'.format(act='meditate', d=root.get_consecutive_streak_by_activity('meditate'))
+    BoxLayout: 
+        size_hint: 1, 0.1
+        Button: 
+            text: 'Back' 
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
+            color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+            on_press: 
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'main'
 
 <TotalsBarPlotScreen>: 
     BoxLayout: 
