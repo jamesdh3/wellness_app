@@ -80,12 +80,12 @@ class FileHandler():
 
 class TimerScreen(Screen): 
     number = NumericProperty() 
+    ui = UI() 
     def __init__(self, **kwargs): 
-
         # returns a project object that allows me to refer to the parent class using 'super' 
         super(TimerScreen, self).__init__(**kwargs)
         self.FH = FileHandler() # file metadata 
-        
+
         """ don't need this snipet as of now 
         # create clock and increment time 
         # NOTE: .1 = 1 sec

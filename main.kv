@@ -76,15 +76,21 @@ WindowManager:
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
             text: 'longest streak for activity {act}: {d} days'.format(act='meditate', d=root.get_consecutive_streak_by_activity('meditate'))
-    BoxLayout: 
+    GridLayout: 
         size_hint: 1, 0.1
-        Button: 
-            text: 'Back' 
+        canvas.before:
+            Color:
+                rgb: utils.get_color_from_hex(root.ui.hex_background)
+            Rectangle: 
+                size: self.size
+        Button:
+            background_normal: ''
             background_color: 
                 utils.get_color_from_hex(root.ui.hex_background)
+            text: 'Back'
             color: 
-                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
-            on_press: 
+                root.ui.hex_main_color
+            on_release: 
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'main'
 
@@ -158,8 +164,6 @@ WindowManager:
 
 
 <TimerScreen>:
-    job: root.number 
-
     # Assigning the alignment to buttons
     BoxLayout
         
