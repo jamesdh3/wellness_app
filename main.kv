@@ -164,17 +164,41 @@ WindowManager:
 
 
 <TimerScreen>:
-    # Assigning the alignment to buttons
-    BoxLayout
-        
-        orientation: 'vertical'
- 
-        # Create Button
-         
-        TextInput: 
-            id: activity_name 
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.ui.hex_background)
+        Rectangle: 
+            size: self.size
+    
+    GridLayout: 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
+        Button: 
+            text: 'Back' 
+            on_press: 
+                root.stop() 
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'main'
+    
+    GridLayout: 
+        cols: 2 
+        size_hint: 1, 0.1
+        pos_hint:{'top': 0.3}
+        TextInput:
+            id: activity_name
             multiline: False 
+        Label: 
+            text : str(round(root.number)) 
+            color : root.ui.hex_main_color 
+            text_size : self.size 
+            halign: 'center'
+            valign: 'middle'  
 
+    GridLayout: 
+        cols: 3 
+        size_hint: 1, 0.1 
+        pos_hint: {'top' : 0.2} 
         Button:
             text: 'start'
             on_press: root.start()
@@ -186,26 +210,16 @@ WindowManager:
         Button:
             text: 'Reset'
             on_press: root.number = 0
-        
+    
+    GridLayout: 
+        cols: 1
+        size_hint: 1, 0.1
         Button: 
-            text: 'Save'
-            on_press: 
+            text: 'Save' 
+            pos_hint: {'top': 0.1} 
+            on_release: 
                 root.stop() 
-                root.update_and_save({root.activity_col: activity_name.text, root.time_col : root.number, root.date_col : root.date, root.time_inserted : root.time})
-
-        Button: 
-            text: 'Back' 
-            on_press: 
-                root.stop() 
-                root.manager.transition.direction = 'right'
-                root.manager.current = 'main'
-
-    # Create the Label
-        Label:
-            text: str(round(root.number))
-            text_size: self.size
-            halign: 'center'
-            valign: 'middle'
+                root.update_and_save({root.FH.activity_col: activity_name.text, root.FH.time_col : root.number, root.FH.date_col : root.FH.date, root.FH.time_inserted : root.FH.time}) 
 
 
     
