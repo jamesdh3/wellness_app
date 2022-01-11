@@ -55,17 +55,46 @@ WindowManager:
                 root.manager.transition.direction = "left"
 
 <SummStatScreen>: 
-    GridLayout: 
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.ui.hex_background)
+        Rectangle: 
+            size: self.size
+    GridLayout: # back button 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
+        Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
+            text: 'Back' 
+            color: 
+                root.ui.hex_main_color
+            on_release:  
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'main'
+    
+    GridLayout: # activity name goes here 
+        cols: 1 
+        pos_hint: {'top': 0.9} 
+        size_hint: (1, .1)  
+        Label: 
+            text: 'meditate' 
+            
+    GridLayout: # summary stats to display 
+        pos_hint : {'top': 0.8} 
         canvas.before:
             Color:
                 rgb: utils.get_color_from_hex(root.ui.hex_background)
             Rectangle: 
                 size: self.size
-        size_hint: 1, 1
+        size_hint: 1, 0.7
         cols: 2 
 
         Label: # mean time acitivty 
-            text: 'avg time (sec): {}'.format(root.get_activity_mean('meditate'))
+            text: 'avg time (sec): {}'.format(str(root.dm.fill_activity_data_holes('meditate')['time_elapsed'].mean()))
+            # text: 'avg time (sec): {}'.format(root.dm.fill_activity_data_holes('meditate'))
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
         Label: # most time activity
@@ -75,24 +104,27 @@ WindowManager:
         Label: # longest streak activity 
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
-            text: 'longest streak for activity {act}: {d} days'.format(act='meditate', d=root.get_consecutive_streak_by_activity('meditate'))
-    GridLayout: 
-        size_hint: 1, 0.1
-        canvas.before:
-            Color:
-                rgb: utils.get_color_from_hex(root.ui.hex_background)
-            Rectangle: 
-                size: self.size
-        Button:
-            background_normal: ''
-            background_color: 
-                utils.get_color_from_hex(root.ui.hex_background)
-            text: 'Back'
+            text: 'longest streak stat' 
+            # 'longest streak for activity {act}: {d} days'.format(act='meditate', d=root.get_consecutive_streak_by_activity('meditate'))
+        Label: # temp 
             color: 
-                root.ui.hex_main_color
-            on_release: 
-                root.manager.transition.direction = 'right'
-                root.manager.current = 'main'
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+            text: 
+                'standard deviation for activity {act}: {v}'.format(act='meditate', v=root.calculate_std('meditate'))
+
+    GridLayout: # choose different activities 
+        cols: 3
+        pos_hint: {'top':0.1}
+        size_hint: (1, 0.1) 
+        Button: # 
+            text: 'this is activity 1' 
+        Button: 
+            text: 'this is activity 2' 
+        Button: 
+            text: 'this is activity 3'
+
+    
+
 
 <TotalsBarPlotScreen>: 
     BoxLayout: 
@@ -175,16 +207,32 @@ WindowManager:
         size_hint: 0.1, 0.1 
         pos_hint: {'top': 1} 
         Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
             text: 'Back' 
-            on_press: 
+            color: 
+                root.ui.hex_main_color
+            on_release: 
                 root.stop() 
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'main'
     
     GridLayout: 
+        cols: 1
+        pos_hint: {'top': .9} 
+        size_hint: 1, 0.7
+        Label:
+            text: '<Image/Animation goes here>'
+            color: root.ui.hex_main_color
+            text_size : self.size 
+            halign: 'center' 
+            valign: 'middle' 
+    
+    GridLayout: 
         cols: 2 
         size_hint: 1, 0.1
-        pos_hint:{'top': 0.3}
+        pos_hint: {'top': 0.3}
         TextInput:
             id: activity_name
             multiline: False 
@@ -192,31 +240,49 @@ WindowManager:
             text : str(round(root.number)) 
             color : root.ui.hex_main_color 
             text_size : self.size 
-            halign: 'center'
-            valign: 'middle'  
+            halign : 'center'
+            valign : 'middle'  
 
     GridLayout: 
         cols: 3 
         size_hint: 1, 0.1 
         pos_hint: {'top' : 0.2} 
         Button:
-            text: 'start'
-            on_press: root.start()
-             
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
+            color: 
+                root.ui.hex_main_color
+            text: 'Start'
+            on_release: root.start()
         Button:
-            text: 'stop'
-            on_press: root.stop()
-             
-        Button:
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
+            color: 
+                root.ui.hex_main_color
             text: 'Reset'
-            on_press: root.number = 0
+            on_release: root.number = 0
+        Button:
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
+            color: 
+                root.ui.hex_main_color
+            text: 'Stop'
+            on_press: root.stop()
     
     GridLayout: 
         cols: 1
         size_hint: 1, 0.1
         Button: 
+            color: 
+                root.ui.hex_main_color
             text: 'Save' 
             pos_hint: {'top': 0.1} 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
             on_release: 
                 root.stop() 
                 root.update_and_save({root.FH.activity_col: activity_name.text, root.FH.time_col : root.number, root.FH.date_col : root.FH.date, root.FH.time_inserted : root.FH.time}) 

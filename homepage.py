@@ -18,10 +18,10 @@ import numpy as np
 from datetime import datetime, timedelta 
 
 
-
+""" Screen manager and aesthetics of screens 
+"""
 class WindowManager(ScreenManager):
     pass
-
 
 class UI():
     '''
@@ -36,14 +36,10 @@ class UI():
 
 class MainWindow(Screen):
     ui = UI()
-    
-
-class PlotAesthetics(): 
-    ''' holds properties for plots 
-    '''
-    pass
 
 
+""" Holds information about the file/database and that metadata info
+"""               
 class FileHandler():
     ''' Objects that holds metadata for the main db file 
 
@@ -60,13 +56,14 @@ class FileHandler():
         self.time_col = 'time_elapsed' 
         self.date_col = 'date_inserted'
         self.time_inserted = 'time_inserted'
+        self.primary_key = 'entry_id'
 
         # date on start 
         self.date = str(datetime.now().date())
         self.time = str(datetime.now().time())
 
         # info on input file 
-        self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype))
+        self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype), parse_dates=[self.date_col])
         self.file_cols = self.input_file.columns 
         self.activities = self.input_file['activity'].unique().tolist() 
 
@@ -77,7 +74,83 @@ class FileHandler():
         return this_activity.isin(self.activities)
     
 
+""" Any and all data formatting done to input data/database
+"""
+class DataManager(): 
+    ''' Object that holds operations that are done on the input file.
 
+        NOTE: will be needed for all plot/visualization classes 
+    '''
+
+    def __init__(self, **kwargs): 
+        self.FH = FileHandler() 
+        pass
+
+    def is_next_date(date_list): 
+        ''' compares 2 dates, and returns True if the second entry is the next day of the first entry 
+        '''
+        return (date_list[0] + datetime.timedelta(days=1)) == (date_list[1])
+
+
+    def create_date_spans(): 
+        '''
+        '''
+        pass 
+
+    def days_diff_list(self, day1, day2): 
+        ''' Takes 2 datetimes and returns a list of all dates in between (inclusive)
+        '''
+        delta = day2 - day1 
+        list_of_dates = [] 
+        for i in range(delta.days + 1): 
+            day = day1 + timedelta(days=i) 
+            list_of_dates += [day] 
+        return list_of_dates 
+
+
+    def fill_activity_data_holes(self, this_activity): 
+        ''' Fills in gaps of dates with 0 time elapsed (any date between min and max date)
+
+            NOTE: could generalize and ask for column of interest as well 
+        '''
+
+        # get dates and time for activity 
+        act_df = self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(this_activity), [self.FH.time_col, self.FH.date_col]].reset_index()
+        act_df[self.FH.date_col] = act_df[self.FH.date_col].dt.date
+
+        # get unique dates; and number of entries 
+        num_entries = len(act_df) 
+        min_date = act_df[self.FH.date_col].min()
+        max_date = act_df[self.FH.date_col].max()
+        orig_dates = act_df[self.FH.date_col].unique().tolist() 
+
+        # get the days between each element in the list 
+        date_list = self.days_diff_list(min_date, max_date)
+
+        # if dates aren't in the orig_dates, insert and create another row with 0 time_elapsed 
+        for this_date in date_list: 
+            if (this_date not in orig_dates): 
+                new_entry = {self.FH.date_col : [this_date], 
+                             self.FH.time_col : [0]
+                            }
+                act_df = act_df.append(pd.DataFrame(new_entry))
+        act_df[self.FH.activity_col] = this_activity 
+        return act_df 
+
+""" Class to handle making the graphs look aesthetically pleasing 
+"""
+class PlotAesthetics(): 
+    ''' holds properties for plots 
+    '''
+    pass
+
+
+
+
+
+
+""" Screen for stopwatch/timer 
+"""
 class TimerScreen(Screen): 
     number = NumericProperty() 
     ui = UI() 
@@ -149,8 +222,11 @@ class TimerScreen(Screen):
         return datetime.now() 
 
 
+""" Screen for summary stats 
+"""
 class SummStatScreen(Screen): 
     ui = UI() 
+    dm = DataManager() 
     def __init__(self, **kwargs): 
 
         super(SummStatScreen, self).__init__(**kwargs) 
@@ -219,13 +295,20 @@ class SummStatScreen(Screen):
         return 
 
 
+    def calculate_std(self, this_activity): 
+        '''
+        '''
+        std_dev = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), self.FH.time_col].std()
+        return std_dev 
+
+
     def generate_summary_stats(self): 
         ''' some summary stats: 
                 - total time per activity (in text) 
                 - avg time per day (for each activity)
                 - ave time per day (doing all activities)
                 - longest streak 
-
+                - percentage of days elapsed in time frame 
             should return all stats in table format 
         '''
         stats_df = pd.DataFrame(columns=self.summary_stat_cols) 
@@ -246,11 +329,14 @@ class SummStatScreen(Screen):
         return 
 
 
+""" Screen for Total time bar plot viz 
+"""
 class TotalsBarPlotScreen(Screen): 
     def __init__(self, **kwargs): 
         super(TotalsBarPlotScreen, self).__init__(**kwargs) 
 
         self.FH = FileHandler()
+        self.DM = DataManager() 
 
         # schedule and run everything after deploying/build 
         Clock.schedule_once(self.create_bar_plot_total)
@@ -260,21 +346,22 @@ class TotalsBarPlotScreen(Screen):
         '''
         line_plot, bx = plt.subplots() 
         for a in self.FH.activities: 
-
+            this_input = self.DM.fill_activity_data_holes(a)
             bx.bar(str(a), # groups (x-axis) 
-                self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(a), self.FH.time_col], # values 
+                this_input.loc[this_input[self.FH.activity_col].eq(a), self.FH.time_col], # values 
                 0.35, # assigning width 
                 label=a
             )
 
         # set labels and plot 
+        bx.legend() 
         bx.set_ylabel(self.FH.time_col)
         bx.set_title('Total time grouped by activity')
-        bx.legend() 
         self.ids.box_plot_total_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
 
-
+""" Screen for line plots by activity plot viz 
+"""
 class LinePlotScreen(Screen): 
     def __init__(self, **kwargs):                                      
         super(LinePlotScreen, self).__init__(**kwargs)
@@ -329,7 +416,8 @@ class LinePlotScreen(Screen):
         lx.set_title('Time spent over time')
         self.ids.line_plot_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
-
+""" Screen for proportion plots and bar plot by activity per day  
+"""
 class StackedBoxPlotScreen(Screen): 
     def __init__(self, **kwargs):                                      
         super(StackedBoxPlotScreen, self).__init__(**kwargs)
@@ -370,7 +458,9 @@ class StackedBoxPlotScreen(Screen):
         self.ids.stacked_box_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
          
-         
+
+""" load the kivy file and build the app 
+"""        
 kv = Builder.load_file('main.kv')
 class MyMainApp(App):
     def parse_data(): 
