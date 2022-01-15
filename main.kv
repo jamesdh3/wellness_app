@@ -219,7 +219,7 @@ WindowManager:
 <TimerScreen>:
     canvas.before: 
         Color:
-            rgb: utils.get_color_from_hex(root.ui.hex_background)
+            rgb: utils.get_color_from_hex(root.UI.hex_background)
         Rectangle: 
             size: self.size
     
@@ -230,15 +230,15 @@ WindowManager:
         Button: 
             background_normal: ''
             background_color: 
-                utils.get_color_from_hex(root.ui.hex_background)
+                utils.get_color_from_hex(root.UI.hex_background)
             text: 'Back' 
             color: 
-                root.ui.hex_main_color
+                root.UI.hex_main_color
             on_press: 
-                root.ui.play_button_press()
+                root.UI.play_button_press()
             on_release: 
                 root.stop() 
-                root.ui.play_button_back()
+                root.UI.play_button_back()
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'main'
     
@@ -248,7 +248,7 @@ WindowManager:
         size_hint: 1, 0.7
         Label:
             text: '<Image/Animation goes here>'
-            color: root.ui.hex_main_color
+            color: root.UI.hex_main_color
             text_size : self.size 
             halign: 'center' 
             valign: 'middle' 
@@ -262,7 +262,7 @@ WindowManager:
             multiline: False 
         Label: 
             text : str(round(root.number)) 
-            color : root.ui.hex_main_color 
+            color : root.UI.hex_main_color 
             text_size : self.size 
             halign : 'center'
             valign : 'middle'  
@@ -274,25 +274,26 @@ WindowManager:
         Button:
             background_normal: ''
             background_color: 
-                utils.get_color_from_hex(root.ui.hex_background)
+                utils.get_color_from_hex(root.UI.hex_background)
             color: 
-                root.ui.hex_main_color
+                root.UI.hex_main_color
             text: 'Start'
-            on_release: root.start()
+            on_release: 
+                root.start()
         Button:
             background_normal: ''
             background_color: 
-                utils.get_color_from_hex(root.ui.hex_background)
+                utils.get_color_from_hex(root.UI.hex_background)
             color: 
-                root.ui.hex_main_color
+                root.UI.hex_main_color
             text: 'Reset'
             on_release: root.number = 0
         Button:
             background_normal: ''
             background_color: 
-                utils.get_color_from_hex(root.ui.hex_background)
+                utils.get_color_from_hex(root.UI.hex_background)
             color: 
-                root.ui.hex_main_color
+                root.UI.hex_main_color
             text: 'Stop'
             on_press: root.stop()
     
@@ -301,12 +302,12 @@ WindowManager:
         size_hint: 1, 0.1
         Button: 
             color: 
-                root.ui.hex_main_color
+                root.UI.hex_main_color
             text: 'Save' 
             pos_hint: {'top': 0.1} 
             background_normal: ''
             background_color: 
-                utils.get_color_from_hex(root.ui.hex_background)
+                utils.get_color_from_hex(root.UI.hex_background)
             on_release: 
                 root.stop() 
                 root.update_and_save({root.FH.activity_col: activity_name.text, root.FH.time_col : root.number, root.FH.date_col : root.FH.date, root.FH.time_inserted : root.FH.time}) 

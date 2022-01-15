@@ -28,6 +28,7 @@ import numpy as np
 
 # handling dates  
 from datetime import datetime, timedelta 
+import time 
 
 
 """ Screen manager and aesthetics of screens 
@@ -41,6 +42,9 @@ class WindowManager(ScreenManager):
 class UI():
     '''
     '''
+    #audio_dir = 'C:/Users/baba/Documents/phone_apps/audio'
+
+
     def __init__(self, **kwargs): 
         self.hex_background = '#DADEE2'
         self.hex_main_color = '#5993A6'
@@ -52,6 +56,8 @@ class UI():
         self.onpress_button_sound_fpath = '{}/droplet1.wav'.format(self.audio_dir)
         self.onrelease_button_sound_fpath = '{}/droplet2.wav'.format(self.audio_dir) 
         self.back_button_sound_fpath = '{}/droplet3.wav'.format(self.audio_dir)
+        self.start_timer = '{}/start_timer.wav'.format(self.audio_dir) 
+        self.start_timer_sound = SoundLoader.load(self.start_timer)
 
     def play_button_press(self): 
         sound = SoundLoader.load(self.onpress_button_sound_fpath)
@@ -64,6 +70,15 @@ class UI():
     def play_button_back(self): 
         sound = SoundLoader.load(self.back_button_sound_fpath)
         sound.play() 
+    
+    def play_button_start_timer(self, interval=14): 
+        '''
+        '''
+        if self.start_timer_sound.state == 'play':
+            self.start_timer_sound.stop()
+        if (self.start_timer_sound.state == 'stop'): 
+            self.start_timer_sound.play() 
+
 
 
 """ Any logic to handle the main screen when a user logs in the app 
@@ -201,11 +216,11 @@ class PlotAesthetics():
 """
 class TimerScreen(Screen): 
     number = NumericProperty() 
-    ui = UI() 
     def __init__(self, **kwargs): 
         # returns a project object that allows me to refer to the parent class using 'super' 
         super(TimerScreen, self).__init__(**kwargs)
         self.FH = FileHandler() # file metadata 
+        self.UI = UI() 
 
         """ don't need this snipet as of now 
         # create clock and increment time 
@@ -260,11 +275,23 @@ class TimerScreen(Screen):
 
     # start button      
     def start(self): 
+        # make sure to unschedule any future jobs 
         Clock.unschedule(self.increment_time) 
+        Clock.unschedule(self.UI.play_button_start_timer)
+
+        # play the start timer sound 
+        self.UI.play_button_start_timer()
+
+        # schedule jobs to increment time and play sound 
         Clock.schedule_interval(self.increment_time, .1) 
+        Clock.schedule_interval(self.UI.play_button_start_timer, 10)
 
     def stop(self): 
         Clock.unschedule(self.increment_time) 
+        Clock.unschedule(self.UI.play_button_start_timer)
+
+        # stop any bell sounds 
+        self.UI.start_timer_sound.stop()
 
     def datestamp(self): 
         return datetime.now() 
