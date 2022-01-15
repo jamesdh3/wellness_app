@@ -33,24 +33,33 @@ WindowManager:
         cols:3
         size_hint: 1, 0.25
         Button:
-            text: "LOG"
+            text: "Log Time"
             background_color:
                 utils.get_color_from_hex(root.ui.hex_main_color) 
-            on_release: 
+            on_press: 
+                root.ui.play_button_press()
+            on_release:
+                root.ui.play_button_release()
                 app.root.current = "timer_screen"
                 root.manager.transition.direction = "left" 
         Button: 
             text: "Summary" 
             background_color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+            on_press: 
+                root.ui.play_button_press()
             on_release: 
+                root.ui.play_button_release()
                 app.root.current="summ_stats_screen" 
                 root.manager.transition.direction = "left" 
         Button:
             text: "Visualize"
             background_color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[2]) 
+            on_press:
+                root.ui.play_button_press()
             on_release:
+                root.ui.play_button_release()
                 app.root.current = "bar_plot_total_screen" 
                 root.manager.transition.direction = "left"
 
@@ -71,7 +80,10 @@ WindowManager:
             text: 'Back' 
             color: 
                 root.ui.hex_main_color
+            on_press:
+                root.ui.play_button_press()
             on_release:  
+                root.ui.play_button_back()
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'main'
     
@@ -93,7 +105,7 @@ WindowManager:
         cols: 2 
 
         Label: # mean time acitivty 
-            text: 'avg time (sec): {}'.format(str(root.dm.fill_activity_data_holes('meditate')['time_elapsed'].mean()))
+            # text: 'avg time (sec): {}'.format(str(root.dm.fill_activity_data_holes('meditate')['time_elapsed'].mean()))
             # text: 'avg time (sec): {}'.format(root.dm.fill_activity_data_holes('meditate'))
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
@@ -140,6 +152,9 @@ WindowManager:
             text: "Back"
             size_hint_y: .2 
             on_press: 
+                root.ui.play_button_press()
+            on_release:
+                root.ui.play_button_back() 
                 root.manager.current = 'main'
         
         Button: 
@@ -165,6 +180,9 @@ WindowManager:
             text: "Back"
             size_hint_y: .2 
             on_press: 
+                root.ui.play_button_press()
+            on_release:
+                root.ui.play_button_back()
                 root.manager.current = 'bar_plot_total_screen'
         
         Button: 
@@ -191,6 +209,9 @@ WindowManager:
             text: "Back"
             size_hint_y: .2 
             on_press: 
+                root.ui.play_button_press()
+            on_release:
+                root.ui.play_button_back()
                 root.manager.current = 'line_plot_screen'
                 root.manager.transition.direction = 'right' 
 
@@ -213,8 +234,11 @@ WindowManager:
             text: 'Back' 
             color: 
                 root.ui.hex_main_color
+            on_press: 
+                root.ui.play_button_press()
             on_release: 
                 root.stop() 
+                root.ui.play_button_back()
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'main'
     

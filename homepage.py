@@ -1,20 +1,32 @@
+
+
+# -- Libraries 
+
+# kivy stuff 
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.core.audio import Sound, SoundLoader
+import matplotlib.dates as mdates
 from kivy.properties import NumericProperty # used when creating a EventDispatcher
 from kivy.uix.boxlayout import BoxLayout # arranges boxes
 from kivy.clock import Clock # allows me to schedule a function in the future  
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg 
-import matplotlib.pyplot as plt 
 from kivy.properties import ObjectProperty
+
+
+# plotting libraries 
+import matplotlib.pyplot as plt 
+from matplotlib.dates import DateFormatter
+
 
 # we're going to want to use some pandas for data manipulation and viz 
 # NOTE: will need to look at how ggplot and phone apps work together 
 import pandas as pd 
 import numpy as np 
 
-# date time 
+# handling dates  
 from datetime import datetime, timedelta 
 
 
@@ -23,6 +35,9 @@ from datetime import datetime, timedelta
 class WindowManager(ScreenManager):
     pass
 
+
+""" Holds aesthetic settings for UI 
+"""
 class UI():
     '''
     '''
@@ -32,8 +47,27 @@ class UI():
         self.hex_complement_color = '#A66C59'
         self.hex_analogous_colors = ['#5993A6', '#596DA6', '#59A692']
         self.hex_white = '#FFFFFF'
-    pass 
 
+        self.audio_dir = 'C:/Users/baba/Documents/phone_apps/audio'
+        self.onpress_button_sound_fpath = '{}/droplet1.wav'.format(self.audio_dir)
+        self.onrelease_button_sound_fpath = '{}/droplet2.wav'.format(self.audio_dir) 
+        self.back_button_sound_fpath = '{}/droplet3.wav'.format(self.audio_dir)
+
+    def play_button_press(self): 
+        sound = SoundLoader.load(self.onpress_button_sound_fpath)
+        sound.play() 
+    
+    def play_button_release(self): 
+        sound = SoundLoader.load(self.onrelease_button_sound_fpath)
+        sound.play() 
+
+    def play_button_back(self): 
+        sound = SoundLoader.load(self.back_button_sound_fpath)
+        sound.play() 
+
+
+""" Any logic to handle the main screen when a user logs in the app 
+"""
 class MainWindow(Screen):
     ui = UI()
 
@@ -65,14 +99,27 @@ class FileHandler():
         # info on input file 
         self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype), parse_dates=[self.date_col])
         self.file_cols = self.input_file.columns 
-        self.activities = self.input_file['activity'].unique().tolist() 
+        self.activities = self.list_activities(self.input_file) 
 
 
     def check_acceptable_activities(self, this_activity): 
         '''
         ''' 
-        return this_activity.isin(self.activities)
+        pass 
     
+    def format_date_axis(self): 
+        ''' for plotting purposes 
+        '''
+        pass 
+
+
+    def list_activities(self, input_df): 
+        '''
+        '''
+        list_act = input_df[self.activity_col].unique().tolist()
+        act_no_nans = [x for x in list_act if str(x) != 'nan'] 
+        return act_no_nans 
+
 
 """ Any and all data formatting done to input data/database
 """
@@ -101,53 +148,54 @@ class DataManager():
         ''' Takes 2 datetimes and returns a list of all dates in between (inclusive)
         '''
         delta = day2 - day1 
-        list_of_dates = [] 
+        list_of_dates = []
         for i in range(delta.days + 1): 
             day = day1 + timedelta(days=i) 
             list_of_dates += [day] 
         return list_of_dates 
 
 
-    def fill_activity_data_holes(self, this_activity): 
+    def fill_activity_data_holes(self): 
         ''' Fills in gaps of dates with 0 time elapsed (any date between min and max date)
 
             NOTE: could generalize and ask for column of interest as well 
+            NOTE: should take some input df 
         '''
 
         # get dates and time for activity 
-        act_df = self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(this_activity), [self.FH.time_col, self.FH.date_col]].reset_index()
+        act_df = self.FH.input_file[[self.FH.activity_col, self.FH.time_col, self.FH.date_col]].reset_index()
         act_df[self.FH.date_col] = act_df[self.FH.date_col].dt.date
 
         # get unique dates; and number of entries 
-        num_entries = len(act_df) 
         min_date = act_df[self.FH.date_col].min()
         max_date = act_df[self.FH.date_col].max()
-        orig_dates = act_df[self.FH.date_col].unique().tolist() 
 
         # get the days between each element in the list 
         date_list = self.days_diff_list(min_date, max_date)
 
         # if dates aren't in the orig_dates, insert and create another row with 0 time_elapsed 
-        for this_date in date_list: 
-            if (this_date not in orig_dates): 
-                new_entry = {self.FH.date_col : [this_date], 
-                             self.FH.time_col : [0]
-                            }
-                act_df = act_df.append(pd.DataFrame(new_entry))
-        act_df[self.FH.activity_col] = this_activity 
-        return act_df 
+        for a in self.FH.activities:
+            this_act = act_df.loc[act_df[self.FH.activity_col].eq(a), ] 
+            orig_dates = this_act[self.FH.date_col].unique().tolist()
+            for this_date in date_list: 
+                if (this_date not in orig_dates): 
+                    new_entry = {self.FH.activity_col : [str(a)],  
+                                 self.FH.date_col : [this_date], 
+                                 self.FH.time_col : [0]
+                                }
+                    act_df = act_df.append(pd.DataFrame(new_entry))
+        return act_df
+
 
 """ Class to handle making the graphs look aesthetically pleasing 
 """
 class PlotAesthetics(): 
     ''' holds properties for plots 
     '''
-    pass
-
-
-
-
-
+    def __init__(self, **kwargs): 
+        self.color_activity_dict = {'meditate':'#5993A6',
+                                    'workout':'#596DA6',
+                                    'walk_dog':'#59A692'}    
 
 """ Screen for stopwatch/timer 
 """
@@ -332,11 +380,14 @@ class SummStatScreen(Screen):
 """ Screen for Total time bar plot viz 
 """
 class TotalsBarPlotScreen(Screen): 
+
+    ui = UI() 
     def __init__(self, **kwargs): 
         super(TotalsBarPlotScreen, self).__init__(**kwargs) 
 
         self.FH = FileHandler()
-        self.DM = DataManager() 
+        self.DM = DataManager()  
+        self.PA = PlotAesthetics()
 
         # schedule and run everything after deploying/build 
         Clock.schedule_once(self.create_bar_plot_total)
@@ -345,14 +396,17 @@ class TotalsBarPlotScreen(Screen):
         '''
         '''
         line_plot, bx = plt.subplots() 
+        this_input = self.DM.fill_activity_data_holes()
+        col_looper = 0 
         for a in self.FH.activities: 
-            this_input = self.DM.fill_activity_data_holes(a)
             bx.bar(str(a), # groups (x-axis) 
                 this_input.loc[this_input[self.FH.activity_col].eq(a), self.FH.time_col], # values 
                 0.35, # assigning width 
-                label=a
+                label=a,
+                color= self.PA.color_activity_dict[a]
             )
-
+            col_looper += 1 
+            
         # set labels and plot 
         bx.legend() 
         bx.set_ylabel(self.FH.time_col)
@@ -363,36 +417,18 @@ class TotalsBarPlotScreen(Screen):
 """ Screen for line plots by activity plot viz 
 """
 class LinePlotScreen(Screen): 
+
+    ui = UI() 
     def __init__(self, **kwargs):                                      
         super(LinePlotScreen, self).__init__(**kwargs)
 
         self.FH = FileHandler()
+        self.DM = DataManager() 
+        self.PA = PlotAesthetics() 
+        
 
         # schedule and run everything after deploying/build 
         Clock.schedule_once(self.create_line_plot)
-
-    def parse_data(self, x_col, y_col):
-        ''' This method handles parsing the db and returning the parameters of interest. 
-
-            Returns: 
-                dictionary 
-        '''
-        # get cols 
-        activities = self.FH.input_file['activity'].unique().tolist() 
-
-        # create tuples for each unique activity-data_point 
-        tuple_dict = dict() 
-        for a in activities: 
-            # subset to activity 
-            this_activity = self.FH.input_file.loc[self.FH.input_file['activity'].eq(a), ]
-
-            # create tuple for each entry 
-            this_activity['xy_vals'] = list(zip(this_activity[x_col], this_activity[y_col])) # note: these colu
-            xy_vals = this_activity['xy_vals'].unique().tolist() 
-
-            # save to dict 
-            tuple_dict[a] = xy_vals
-        return tuple_dict    
 
 
     def format_data(): 
@@ -406,25 +442,36 @@ class LinePlotScreen(Screen):
         line_plot, lx = plt.subplots() 
 
         # loop through each activity 
+        plot_df = self.DM.fill_activity_data_holes()
         for a in self.FH.activities: 
-            tmp_vals = self.FH.input_file.loc[self.FH.input_file['activity'].eq(a), ]
-            plt.plot(tmp_vals['date_inserted'], tmp_vals['time_elapsed'], label=a)
+            tmp_vals = plot_df.loc[plot_df['activity'].eq(a), ].sort_values(by=self.FH.date_col)
+            x_vals = [str(x) for x in tmp_vals['date_inserted'].unique().tolist()]
+            y_vals = tmp_vals['time_elapsed'].tolist()
+            lx.plot(x_vals, y_vals, label=a, color=self.PA.color_activity_dict[a])
 
         lx.legend() 
         lx.set_ylabel('Time (seconds)')
         lx.set_xlabel('Date')
         lx.set_title('Time spent over time')
+
+        line_plot.autofmt_xdate() 
+        # lx.fmt_xdata = mdates.DateFormatter('%Y-%m-%d')
         self.ids.line_plot_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+
 
 """ Screen for proportion plots and bar plot by activity per day  
 """
 class StackedBoxPlotScreen(Screen): 
+
+    ui = UI() 
     def __init__(self, **kwargs):                                      
         super(StackedBoxPlotScreen, self).__init__(**kwargs)
         self.FH = FileHandler()
+        self.DM = DataManager()
+        self.PA = PlotAesthetics() 
 
         # schedule and run everything after deploying/build 
-        #Clock.schedule_once(self.create_stacked_bar_plot)
+        Clock.schedule_once(self.create_stacked_bar_plot)
 
     def create_stacked_bar_plot(self, *args): 
         ''' stacked bar plots to visualize proportion of time spent among different activities 
@@ -432,29 +479,40 @@ class StackedBoxPlotScreen(Screen):
             # need to check for squareness on dates for each activityy 
         '''
         stack_plot, sx = plt.subplots()
-        for a in self.FH.activities: 
+        input_df = self.DM.fill_activity_data_holes()
+        for a in self.FH.activities:
+            # subset to activity and sort by date  
+            plot_df = input_df.loc[input_df[self.FH.activity_col].eq(a), ].sort_values(by=self.FH.date_col)
+
+            # do some formatting of x-axis (dates) 
+            x_vals = plot_df.loc[plot_df[self.FH.activity_col].eq(a), self.FH.date_col].tolist() 
+            x_vals = [str(x) for x in x_vals]
             if (self.FH.activities.index(a) == 0): 
-                bottom_vals  = np.array(self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(a), self.FH.time_col])
-                sx.bar(self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(a), self.FH.date_col].tolist(), # groups (x-axis) 
-                    self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(a), self.FH.time_col], # values 
+                bottom_vals  = np.array(plot_df.loc[plot_df[self.FH.activity_col].eq(a), self.FH.time_col])
+                sx.bar(x_vals, # groups (x-axis) 
+                    plot_df.loc[plot_df[self.FH.activity_col].eq(a), self.FH.time_col], # values 
                     0.35, # assigning width 
-                    label=a
+                    label=a,
+                    color= self.PA.color_activity_dict[a]
                 )
             else: 
                 prev_activity = self.FH.activities[self.FH.activities.index(a) - 1] 
-                sx.bar(self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(a), self.FH.date_col].tolist(), # groups (x-axis) 
-                    self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(a), self.FH.time_col], # values 
+                sx.bar(x_vals, # groups (x-axis) 
+                    plot_df.loc[plot_df[self.FH.activity_col].eq(a), self.FH.time_col], # values 
                     0.35, # assigning width 
                     bottom= bottom_vals, 
-                    label=a
+                    label=a,
+                    color=self.PA.color_activity_dict[a]
                 )
-                bottom_vals  = bottom_vals + np.array(self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(a), self.FH.time_col])
+                bottom_vals  = bottom_vals + np.array(plot_df.loc[plot_df[self.FH.activity_col].eq(a), self.FH.time_col])
+
 
 
         # set labels and plot 
         sx.set_ylabel(self.FH.time_col)
         sx.set_title('Total time grouped by day')
         sx.legend() 
+        stack_plot.autofmt_xdate() 
         self.ids.stacked_box_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
          
