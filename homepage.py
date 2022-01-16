@@ -403,12 +403,61 @@ class SummStatScreen(Screen):
             '''
         return 
 
+""" Screen for selecting viz 
+"""
+class VizSelectScreen(Screen): 
+    UI = UI() 
+    def __init__(self, **kwargs): 
+        super(VizSelectScreen, self).__init__(**kwargs)
+    pass 
+
+
+""" Screen for frequency/distribution viz
+"""
+class FreqHistPlotScreen(Screen): 
+    UI = UI() 
+    def __init__(self, **kwargs): 
+        super(FreqHistPlotScreen, self).__init__(**kwargs) 
+
+        self.FH = FileHandler()
+        self.DM = DataManager()  
+        self.PA = PlotAesthetics()
+
+        # schedule and run everything after deploying/build 
+        Clock.schedule_once(self.plot_freq_hist)
+
+    
+    def plot_freq_hist(self, *args): 
+        ''' Plots distributio this_activity,n/freq visual for a given activity  
+        '''
+        freq_plot, fx = plt.subplots() 
+
+        input = self.DM.fill_activity_data_holes()
+        sub = input.loc[input[self.FH.activity_col].eq('meditate'), ]
+
+        # round to the nearest second 
+
+
+        # lets just plot meditation for now
+        freq_vals = sub[self.FH.time_col] 
+        fx.hist(freq_vals, bins=range(min(freq_vals), max(freq_vals)+1), color=self.UI.hex_main_color)
+
+
+        # TODO: format y axis ticks 
+        fx.set_ylabel(self.FH.time_col)
+        fx.set_xlabel('time in seconds')
+        fx.set_title('Distribution of time entries for {}'.format(this_activity))
+        self.ids.time_dist_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+    
+    
+
+
 
 """ Screen for Total time bar plot viz 
 """
 class TotalsBarPlotScreen(Screen): 
 
-    ui = UI() 
+    UI = UI() 
     def __init__(self, **kwargs): 
         super(TotalsBarPlotScreen, self).__init__(**kwargs) 
 
@@ -445,7 +494,7 @@ class TotalsBarPlotScreen(Screen):
 """
 class LinePlotScreen(Screen): 
 
-    ui = UI() 
+    UI = UI() 
     def __init__(self, **kwargs):                                      
         super(LinePlotScreen, self).__init__(**kwargs)
 
@@ -490,7 +539,7 @@ class LinePlotScreen(Screen):
 """
 class StackedBoxPlotScreen(Screen): 
 
-    ui = UI() 
+    UI = UI() 
     def __init__(self, **kwargs):                                      
         super(StackedBoxPlotScreen, self).__init__(**kwargs)
         self.FH = FileHandler()

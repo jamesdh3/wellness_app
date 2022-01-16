@@ -13,6 +13,10 @@ WindowManager:
         name : 'box_plot_screen'
     TotalsBarPlotScreen: 
         name : 'bar_plot_total_screen' 
+    VizSelectScreen: 
+        name: 'viz_select_screen'
+    FreqHistPlotScreen: 
+        name: 'freq_hist_screen' 
 
 
 <MainWindow>:
@@ -60,7 +64,7 @@ WindowManager:
                 root.ui.play_button_press()
             on_release:
                 root.ui.play_button_release()
-                app.root.current = "bar_plot_total_screen" 
+                app.root.current = 'viz_select_screen'
                 root.manager.transition.direction = "left"
 
 <SummStatScreen>: 
@@ -139,81 +143,213 @@ WindowManager:
 
 
 <TotalsBarPlotScreen>: 
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.UI.hex_background)
+        Rectangle: 
+            size: self.size
+
+    GridLayout: 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
+        Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Back' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'viz_select_screen'
+
     BoxLayout: 
         id: box_plot_total_fig
-        size_hint_y: .8
-        pos_hint: {'top':1} 
-    
-    BoxLayout: 
-        cols: 2 
+        size_hint_y: 0.9
+        pos_hint: {'top': 0.9} 
 
-        Button: 
-            id: stat_back 
-            text: "Back"
-            size_hint_y: .2 
-            on_press: 
-                root.ui.play_button_press()
-            on_release:
-                root.ui.play_button_back() 
-                root.manager.current = 'main'
-        
-        Button: 
-            id: next_plot_stacked_bar
-            text: "Next Plot" 
-            size_hint_y: .2 
-            on_press: 
-                root.manager.current = 'line_plot_screen' 
-                root.manager.transition.direction = 'left'
 
 
 <LinePlotScreen>:     
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.UI.hex_background)
+        Rectangle: 
+            size: self.size
+
+    GridLayout: 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
+        Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Back' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'viz_select_screen'
     BoxLayout:
         id: line_plot_fig
-        size_hint_y: .8
-        pos_hint: {'top':1}
+        size_hint_y: 0.9 
+        pos_hint: {'top': 0.9}
 
-    BoxLayout:
-        cols: 2 
-
-        Button: 
-            id: stat_back 
-            text: "Back"
-            size_hint_y: .2 
-            on_press: 
-                root.ui.play_button_press()
-            on_release:
-                root.ui.play_button_back()
-                root.manager.current = 'bar_plot_total_screen'
-        
-        Button: 
-            id: next_plot_stacked_bar
-            text: "Next Plot" 
-            size_hint_y: .2 
-            on_press: 
-                root.manager.current = 'box_plot_screen' 
-                root.manager.transition.direction = 'left'
 
     
 
 <StackedBoxPlotScreen>: 
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.UI.hex_background)
+        Rectangle: 
+            size: self.size
+
+    GridLayout: 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
+        Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Back' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'viz_select_screen'
+    
     BoxLayout:
         id: stacked_box_fig
-        size_hint_y: .8
-        pos_hint: {'top':1}
+        size_hint_y: 0.9
+        pos_hint: {'top':0.9}
 
-    BoxLayout:
-        cols : 2 
+<FreqHistPlotScreen>: 
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.UI.hex_background)
+        Rectangle: 
+            size: self.size
 
+    GridLayout: 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
         Button: 
-            id: stat_back 
-            text: "Back"
-            size_hint_y: .2 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Back' 
+            color: 
+                root.UI.hex_main_color
             on_press: 
-                root.ui.play_button_press()
-            on_release:
-                root.ui.play_button_back()
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'viz_select_screen'
+    
+    BoxLayout:
+        id: time_dist_fig
+        size_hint_y: 0.9
+        pos_hint: {'top':0.9}
+
+<VizSelectScreen>: 
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.UI.hex_background)
+        Rectangle: 
+            size: self.size
+
+    GridLayout: 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
+        Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Back' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'main'
+    
+    GridLayout:
+        cols: 1
+        pos_hint: {'top' : .9}
+        size_hint: 1, 0.8
+
+        Button: # total time 
+            # background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Total Time By Activity' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'left'
+                root.manager.current = 'bar_plot_total_screen'
+        Button: # time x time 
+            # background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Total time over days in a month' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'left'
                 root.manager.current = 'line_plot_screen'
-                root.manager.transition.direction = 'right' 
+        Button: # stacked bar 
+            # background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Total time over days in a month' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'left'
+                root.manager.current = 'box_plot_screen'
+        Button: # distribution 
+            # background_normal: '' #removes background color of button 
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_background)
+            text: 'Total time over days in a month' 
+            color: 
+                root.UI.hex_main_color
+            on_press: 
+                root.UI.play_button_press()
+            on_release: 
+                root.UI.play_button_back()
+                root.manager.transition.direction = 'left'
+                root.manager.current = 'freq_hist_screen'
+
+
 
 
 <TimerScreen>:
