@@ -430,10 +430,11 @@ class FreqHistPlotScreen(Screen):
     def plot_freq_hist(self, *args): 
         ''' Plots distributio this_activity,n/freq visual for a given activity  
         '''
+        this_activity = 'meditate'
         freq_plot, fx = plt.subplots() 
 
         input = self.DM.fill_activity_data_holes()
-        sub = input.loc[input[self.FH.activity_col].eq('meditate'), ]
+        sub = input.loc[input[self.FH.activity_col].eq(this_activity), ]
 
         # round to the nearest second 
 
