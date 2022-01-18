@@ -20,18 +20,18 @@ WindowManager:
 
 
 <MainWindow>:
-    BoxLayout:
+    GridLayout:
+        cols: 1 
+        size_hint: 1, 1
         canvas.before:
             Color:
                 rgb: utils.get_color_from_hex(root.ui.hex_background)
             Rectangle: 
                 size: self.size
-        Label: 
-            size_hint: 1, 1
-            text:
-                "Flow Time"
-            color: 
-                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+        Image:
+            source: 'C:/Users/baba/Documents/phone_apps/pics/landing_page.jpg'
+            size: self.texture_size
+
 
     GridLayout:
         cols:3
@@ -97,36 +97,36 @@ WindowManager:
         size_hint: (1, .1)  
         Label: 
             text: 'meditate' 
-            
-    GridLayout: # summary stats to display 
-        pos_hint : {'top': 0.8} 
-        canvas.before:
-            Color:
-                rgb: utils.get_color_from_hex(root.ui.hex_background)
-            Rectangle: 
-                size: self.size
-        size_hint: 1, 0.7
-        cols: 2 
+            color:
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
 
-        Label: # mean time acitivty 
-            # text: 'avg time (sec): {}'.format(str(root.dm.fill_activity_data_holes('meditate')['time_elapsed'].mean()))
-            # text: 'avg time (sec): {}'.format(root.dm.fill_activity_data_holes('meditate'))
+    
+    GridLayout: # other summary stats 
+        cols: 3 
+        pos_hint: {'top' : 0.8} 
+        size_hint: (1, 0.1) 
+        
+        Label: # longest streak 
+            text:  
+                #'longest streak: {}'.format(root.get_consecutive_streak_by_activity('meditate'))  
+                'dates of streak: {}'.format(root.get_longest_streak_dates('meditate')) 
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
-        Label: # most time activity
-            text: 'most time spent on {act}: {t} (sec). on day: {d}'.format(act='meditate', t=root.get_activity_mean('meditate'), d=root.get_activity_date_of_max('meditate'))
-            color: 
-                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
-        Label: # longest streak activity 
-            color: 
-                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
-            text: 'longest streak stat' 
-            # 'longest streak for activity {act}: {d} days'.format(act='meditate', d=root.get_consecutive_streak_by_activity('meditate'))
-        Label: # temp 
-            color: 
-                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+        Label: # mean stat
             text: 
-                'standard deviation for activity {act}: {v}'.format(act='meditate', v=root.calculate_std('meditate'))
+                'avg time: {} (sec)'.format(round(root.get_activity_mean('meditate'), 2)) 
+            color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+        Label: # std deviation stat 
+            text: 
+                'standard deviation: {} (sec)'.format(round(root.calculate_std('meditate'),2))  
+            color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+
+    BoxLayout: # display calendar here 
+        pos_hint : {'top' : 0.7} 
+        size_hint: (1, 0.6) 
+        id: cal_summary
 
     GridLayout: # choose different activities 
         cols: 3

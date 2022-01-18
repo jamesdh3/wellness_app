@@ -30,6 +30,9 @@ import numpy as np
 from datetime import datetime, timedelta 
 import time 
 
+# creating calendar viz 
+import calendar 
+
 
 """ Screen manager and aesthetics of screens 
 """
@@ -59,6 +62,12 @@ class UI():
         self.start_timer = '{}/start_timer.wav'.format(self.audio_dir) 
         self.start_timer_sound = SoundLoader.load(self.start_timer)
 
+        # stuff for summs/calendar view 
+        self.week_days = 'Sun Mon Tue Wed Thu Fri Sat'.split()
+        self.month_names = '''January February March April
+                              May June July August
+                              September October November December'''.split()
+
     def play_button_press(self): 
         sound = SoundLoader.load(self.onpress_button_sound_fpath)
         sound.play() 
@@ -71,7 +80,7 @@ class UI():
         sound = SoundLoader.load(self.back_button_sound_fpath)
         sound.play() 
     
-    def play_button_start_timer(self, interval=14): 
+    def play_button_start_timer(self): 
         '''
         '''
         if self.start_timer_sound.state == 'play':
@@ -297,17 +306,98 @@ class TimerScreen(Screen):
         return datetime.now() 
 
 
+""" Class for handling Calendar viz 
+
+pulled code from this repo - https://github.com/meta4/mplcal
+
+will adjust as needed:
+- ability to color coordinate with some events and colors 
+
+NOTE: add some suggested PRs 
+"""
+class CalendarViz(): 
+    UI = UI() 
+    def __init__(self, year, month):
+        self.year = year
+        self.month = month
+        self.cal = calendar.monthcalendar(year+1, month) # off by 1 - need to look into 
+        
+        
+        # monthcalendar creates a list of lists for each week
+        # Save the events data in the same format
+        self.events = [[[] for day in week] for week in self.cal]
+
+    def _monthday_to_index(self, day):
+        'The index of the day in the list of lists'
+        for week_n, week in enumerate(self.cal):
+            try:
+                i = week.index(day)
+                return week_n, i
+            except ValueError:
+                pass
+         # couldn't find the day
+        raise ValueError("There aren't {} days in the month".format(day))
+
+    def add_event(self, day, event_str):
+        ''' insert a string into the events list for the specified day. will want to color this
+        '''
+        week, w_day = self._monthday_to_index(day)
+        self.events[week][w_day].append(event_str)
+
+    def add_activity_event(self, day, this_activity): 
+        ''' this method will take a calendar object insert strings or images for a specifified date.
+        '''
+        pass 
+
+    def show(self):
+        ''' create the calendar
+        '''
+        f, axs = plt.subplots(len(self.cal), 7, sharex=True, sharey=True) # create the list of lists of subplots 
+        for week, ax_row in enumerate(axs):
+            for week_day, ax in enumerate(ax_row):
+                ax.set_xticks([])
+                ax.set_yticks([])
+                if self.cal[week][week_day] != 0:
+                    ax.text(.02, .98,
+                            str(self.cal[week][week_day]),
+                            verticalalignment='top',
+                            horizontalalignment='left')
+                contents = "\n".join(self.events[week][week_day])
+                ax.text(.03, .85, contents,
+                        verticalalignment='top',
+                        horizontalalignment='left',
+                        fontsize=9)
+
+        # use the titles of the first row as the weekdays
+        for n, day in enumerate(self.UI.week_days):
+            axs[0][n].set_title(day)
+
+
 """ Screen for summary stats 
 """
 class SummStatScreen(Screen): 
     ui = UI() 
-    dm = DataManager() 
-    def __init__(self, **kwargs): 
+    dm = DataManager()
+ 
 
+    def __init__(self, **kwargs): 
         super(SummStatScreen, self).__init__(**kwargs) 
         self.FH = FileHandler() 
 
         self.summary_stat_cols = ['mean','highest_time','highest_time_date','longest_streak','dates_of_streak']
+
+
+        # schedule any plots and viz stuff 
+        Clock.schedule_once(self.display_calendar)
+
+
+    def display_calendar(self, this_activity): 
+        '''
+        '''
+        calv = CalendarViz(2022, 1)
+        calv.show() 
+        self.ids.cal_summary.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+
 
     def get_activity_mean(self, this_activity): 
         '''
@@ -343,12 +433,14 @@ class SummStatScreen(Screen):
 
     def get_consecutive_streak_by_activity(self, this_activity): 
         ''' Given an activity, return the longest streak(s) and dates of streak(s)
+
+            NOTE: if there are more than 1 streak, return a list of lists
         '''
 
-        date_entries = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), self.FH.date_col]
+        date_entries = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), self.FH.date_col].drop_duplicates()
         sorted_dates = date_entries.sort_values()
 
-        streak_list = [datetime.strptime(d, '%m/%d/%Y').date() for d in sorted_dates]
+        streak_list = [datetime.strptime(str(d), '%Y-%m-%d %H:%M:%S').date() for d in sorted_dates]
         streak_df = pd.DataFrame() 
         streak_df[self.FH.date_col] = streak_list 
         streak_df['group_series'] = (streak_df.diff() > pd.Timedelta('1 day')).cumsum() # NOTE: need better check I think 
@@ -359,9 +451,50 @@ class SummStatScreen(Screen):
 
         # should check if we have 1 or more of same length of streak
         dates_of_streak = streak_df.loc[streak_df['group_series'].isin(streak_group), 'date_inserted'].unique().tolist() 
-
+        
         # return tuple 
         return (highest_streak, dates_of_streak)
+
+    def get_longest_streak_dict(self): 
+        '''
+        '''
+        # get all activities, loop and append to dict 
+        activity_dict = dict() 
+        for act in self.FH.activities: 
+            activity_dict[act] = self.get_consecutive_streak_by_activity(act)[0]
+        return activity_dict 
+
+    def get_longest_streak_dates(self, return_span=True): 
+        ''' returns dictionary where keys are activity names and values are 
+            dates that determine which dates contained the longest streak
+        '''
+            
+        def _create_date_span(date_list): 
+            ''' given a list of dates, create a date span
+                input: [datetime.date(2022, 1,3), datetime.date(2022,1,4), datetime.date(2022,1,5)]
+            return: '2022/01/03 - 2022/01/05'
+
+            NOTE: at the moment, this is going to assume there are no gap dates in the input 
+            '''
+            pass
+
+
+        activity_dict = dict() 
+        for act in self.FH.activities: 
+            # get dates and convert to a str of dates 
+            streak_dates =  self.get_consecutive_streak_by_activity(act)[1]
+            str_streak_dates = [str(s) for s in streak_dates]
+
+            activity_dict[act] = str_streak_dates 
+
+        # either return all dates in the streak or the date span 
+        if return_span: 
+            return _create_date_span([])
+        else: 
+            return 
+
+    
+
 
 
     def date_span_str(self, list_of_dates): 
@@ -508,11 +641,6 @@ class LinePlotScreen(Screen):
         Clock.schedule_once(self.create_line_plot)
 
 
-    def format_data(): 
-        ''' format the data on build so it's ready for visualizations 
-        '''
-        pass 
-
     def create_line_plot(self, *args): 
         ''' line plots grouped by activity. to easily visualize trends over time 
         '''
@@ -522,6 +650,11 @@ class LinePlotScreen(Screen):
         plot_df = self.DM.fill_activity_data_holes()
         for a in self.FH.activities: 
             tmp_vals = plot_df.loc[plot_df['activity'].eq(a), ].sort_values(by=self.FH.date_col)
+
+            # group the vals by date; 
+            # there may be scenarios where a person may have multiple entries on a given day 
+            tmp_vals = tmp_vals.groupby(self.FH.date_col)[self.FH.time_col].sum().reset_index() 
+
             x_vals = [str(x) for x in tmp_vals['date_inserted'].unique().tolist()]
             y_vals = tmp_vals['time_elapsed'].tolist()
             lx.plot(x_vals, y_vals, label=a, color=self.PA.color_activity_dict[a])
@@ -560,6 +693,10 @@ class StackedBoxPlotScreen(Screen):
         for a in self.FH.activities:
             # subset to activity and sort by date  
             plot_df = input_df.loc[input_df[self.FH.activity_col].eq(a), ].sort_values(by=self.FH.date_col)
+
+            # TODO: add some to data manager
+            # groupby and remove duplicate date entries 
+            plot_df = plot_df.groupby([self.FH.date_col, self.FH.activity_col])[self.FH.time_col].sum().reset_index() 
 
             # do some formatting of x-axis (dates) 
             x_vals = plot_df.loc[plot_df[self.FH.activity_col].eq(a), self.FH.date_col].tolist() 
