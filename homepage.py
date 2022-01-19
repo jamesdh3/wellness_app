@@ -3,7 +3,7 @@
 # -- Libraries 
 
 # kivy stuff 
-from kivy.app import App
+from kivy.app import App  
 from kivy.lang import Builder
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -53,6 +53,7 @@ class UI():
         self.hex_main_color = '#5993A6'
         self.hex_complement_color = '#A66C59'
         self.hex_analogous_colors = ['#5993A6', '#596DA6', '#59A692']
+        self.hex_palette = ['#5993A6', '#5888AA', '#667BA8', '#7A6B9D', '#8C5A88', '#974B6B'] # will need to fix this 
         self.hex_white = '#FFFFFF'
 
         self.audio_dir = 'C:/Users/baba/Documents/phone_apps/audio'
@@ -89,7 +90,6 @@ class UI():
             self.start_timer_sound.play() 
 
 
-
 """ Any logic to handle the main screen when a user logs in the app 
 """
 class MainWindow(Screen):
@@ -103,27 +103,45 @@ class FileHandler():
 
         Should be called every time app opens up 
     ''' 
-    def __init__(self, **kwargs): 
-        # file metadata 
-        self.filename = 'test_db'
-        self.filetype = 'csv'
-        self.workdir = 'C:/Users/baba/Documents/phone_apps/tmp_db'
+    # file metadata 
+    filename = 'test_db'
+    filetype = 'csv'
+    workdir = 'C:/Users/baba/Documents/phone_apps/tmp_db'
 
-        # file cols 
-        self.activity_col = 'activity'
-        self.time_col = 'time_elapsed' 
-        self.date_col = 'date_inserted'
-        self.time_inserted = 'time_inserted'
-        self.primary_key = 'entry_id'
+    # file cols 
+    activity_col = 'activity'
+    time_col = 'time_elapsed' 
+    date_col = 'date_inserted'
+    time_inserted = 'time_inserted'
+    primary_key = 'entry_id'
 
-        # date on start 
-        self.date = str(datetime.now().date())
-        self.time = str(datetime.now().time())
+    # date on start 
+    date = str(datetime.now().date())
+    time = str(datetime.now().time())
 
+    UI = UI() 
+    def __init__(self, **kwargs): # note could initialize on file_name s
         # info on input file 
         self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype), parse_dates=[self.date_col])
+        self.input_file = self.format_date_axis() 
+
         self.file_cols = self.input_file.columns 
         self.activities = self.list_activities(self.input_file) 
+
+        color_map = self._assign_activity_colors() 
+
+    def _assign_activity_colors(self): 
+        ''' creates a dictionary where key value is an activity; and value 
+            is 
+        '''
+        # order activities by time_elapsed 
+        act_list = self.input_file.sort_values(by=self.time_col)[self.activity_col].unique().tolist() 
+
+        # loop through each activity and assign color 
+        color_dict = dict() 
+        for act in self.activities: 
+            color_dict[act] = self.UI.hex_palette[act_list.index(act)]
+        return color_dict
 
 
     def check_acceptable_activities(self, this_activity): 
@@ -132,10 +150,25 @@ class FileHandler():
         pass 
     
     def format_date_axis(self): 
-        ''' for plotting purposes 
+        ''' for plotting purposes - remove the time stamp from date-inserted  
         '''
-        pass 
+        self.input_file[self.date_col] = self.input_file[self.date_col].dt.date
+        return self.input_file 
 
+    def datetime_to_str(self, df): 
+        ''' converts a datetime.date column into str format
+        '''
+        assert self.date_col in df.columns, '{} is not present in the data!'.format(self.date_col)
+
+        # grab a list of entries 
+        date_entry_list = df[self.date_col].tolist() 
+
+        # for each entry, convert to str 
+        date_str = [str(d) for d in date_entry_list]
+        
+        # replace and return 
+        df[self.date_col] = date_str 
+        return df
 
     def list_activities(self, input_df): 
         '''
@@ -167,6 +200,27 @@ class DataManager():
         '''
         '''
         pass 
+
+
+    def collapse(self, df, groupby_cols, agg_col, agg_name='sum'): 
+        ''' Does a custom aggregation for given set of columns
+
+            Input:
+                df : DataFrame
+                    pandas data.frame
+                groupby_cols : list
+                    identifier columns you want to aggregate over
+                agg_col : str
+                    name of column you want to aggregate 
+                agg_name : string (default='sum')
+                    specify how you want to aggregate a certain column 
+                    possible vals: ['sum']
+            
+            Output: 
+                pandas dataframe
+        '''
+        pass 
+
 
     def days_diff_list(self, day1, day2): 
         ''' Takes 2 datetimes and returns a list of all dates in between (inclusive)
@@ -316,7 +370,9 @@ will adjust as needed:
 NOTE: add some suggested PRs 
 """
 class CalendarViz(): 
-    UI = UI() 
+    UI = UI()
+    FH = FileHandler()
+
     def __init__(self, year, month):
         self.year = year
         self.month = month
@@ -347,12 +403,29 @@ class CalendarViz():
     def add_activity_event(self, day, this_activity): 
         ''' this method will take a calendar object insert strings or images for a specifified date.
         '''
-        pass 
+        week, w_day = self._monthday_to_index(day)
+        self.events[week][w_day].append(this_activity)
+        
 
     def show(self):
         ''' create the calendar
         '''
+        x = [0,1]
+        y = [1,1]
+        y2 = [0,0]
+
+        # test case - say we have 2 qactivities for a given day, create a blue and orange square for a given day 
+        acts = ['a1', 'a2']
+
         f, axs = plt.subplots(len(self.cal), 7, sharex=True, sharey=True) # create the list of lists of subplots 
+
+        # set backgrouund color of calendar; match it with the rest of the UI 
+        f.set_facecolor(self.UI.hex_background)
+
+        # load in input data.frame that has activiity info 
+        df = self.FH.datetime_to_str(self.FH.input_file.copy(deep=True))
+
+        # loop through the list of lists, creating text and activity events 
         for week, ax_row in enumerate(axs):
             for week_day, ax in enumerate(ax_row):
                 ax.set_xticks([])
@@ -362,7 +435,25 @@ class CalendarViz():
                             str(self.cal[week][week_day]),
                             verticalalignment='top',
                             horizontalalignment='left')
+
+                    # check which activity events are needed for a given day 
+                    sub_df = df.loc[df[self.FH.date_col].eq('{yr}-0{mt}-{d}'.format(yr=self.year, mt=self.month, d=self.cal[week][week_day])), ]
+                    day_of_acts = sub_df[self.FH.activity_col].unique().tolist() 
+
+                    # calculate how many columms and loop through the length 
+                    num_cols = len(day_of_acts)
+
+                # add any additional events/text to the calendar      
                 contents = "\n".join(self.events[week][week_day])
+
+                # the data points should be determined based on how many activities exist for a given day 
+                #for this_act in day_of_acts: 
+                #    pass 
+                ax.plot(x, y, color='white') 
+                ax.plot(x, y2, color='white')
+                ax.fill_between([0,0.5], y, y2, where=(y2<=y))
+                ax.fill_between([0.5,1], y, y2, where= (y2<=y)) 
+                
                 ax.text(.03, .85, contents,
                         verticalalignment='top',
                         horizontalalignment='left',
@@ -395,7 +486,11 @@ class SummStatScreen(Screen):
         '''
         '''
         calv = CalendarViz(2022, 1)
+        # calv.add_activity_event(1, 'first date')
+        #  calv.add_activity_event(2, 'this is James. he likes to program once in awhile, but he really wanted to be a dancef.')
         calv.show() 
+
+
         self.ids.cal_summary.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
 
@@ -440,7 +535,7 @@ class SummStatScreen(Screen):
         date_entries = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), self.FH.date_col].drop_duplicates()
         sorted_dates = date_entries.sort_values()
 
-        streak_list = [datetime.strptime(str(d), '%Y-%m-%d %H:%M:%S').date() for d in sorted_dates]
+        streak_list = [datetime.strptime(str(d), '%Y-%m-%d').date() for d in sorted_dates]
         streak_df = pd.DataFrame() 
         streak_df[self.FH.date_col] = streak_list 
         streak_df['group_series'] = (streak_df.diff() > pd.Timedelta('1 day')).cumsum() # NOTE: need better check I think 
@@ -536,6 +631,7 @@ class SummStatScreen(Screen):
             '''
         return 
 
+
 """ Screen for selecting viz 
 """
 class VizSelectScreen(Screen): 
@@ -557,7 +653,7 @@ class FreqHistPlotScreen(Screen):
         self.PA = PlotAesthetics()
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.plot_freq_hist)
+        # Clock.schedule_once(self.plot_freq_hist)
 
     
     def plot_freq_hist(self, *args): 
@@ -583,9 +679,6 @@ class FreqHistPlotScreen(Screen):
         fx.set_title('Distribution of time entries for {}'.format(this_activity))
         self.ids.time_dist_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
     
-    
-
-
 
 """ Screen for Total time bar plot viz 
 """
@@ -600,7 +693,7 @@ class TotalsBarPlotScreen(Screen):
         self.PA = PlotAesthetics()
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_bar_plot_total)
+        # Clock.schedule_once(self.create_bar_plot_total)
 
     def create_bar_plot_total(self, *args): 
         '''
@@ -638,7 +731,7 @@ class LinePlotScreen(Screen):
         
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_line_plot)
+        # Clock.schedule_once(self.create_line_plot)
 
 
     def create_line_plot(self, *args): 
@@ -681,7 +774,7 @@ class StackedBoxPlotScreen(Screen):
         self.PA = PlotAesthetics() 
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_stacked_bar_plot)
+        # Clock.schedule_once(self.create_stacked_bar_plot)
 
     def create_stacked_bar_plot(self, *args): 
         ''' stacked bar plots to visualize proportion of time spent among different activities 
@@ -728,8 +821,7 @@ class StackedBoxPlotScreen(Screen):
         sx.legend() 
         stack_plot.autofmt_xdate() 
         self.ids.stacked_box_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
-
-         
+        
 
 """ load the kivy file and build the app 
 """        
