@@ -242,7 +242,8 @@ class DataManager():
 
         # get dates and time for activity 
         act_df = self.FH.input_file[[self.FH.activity_col, self.FH.time_col, self.FH.date_col]].reset_index()
-        act_df[self.FH.date_col] = act_df[self.FH.date_col].dt.date
+
+        # act_df[self.FH.date_col] = act_df[self.FH.date_col].dt.date
 
         # get unique dates; and number of entries 
         min_date = act_df[self.FH.date_col].min()
@@ -407,7 +408,7 @@ class CalendarViz():
         self.events[week][w_day].append(this_activity)
         
 
-    def show(self):
+    def show(self, this_activity):
         ''' create the calendar
         '''
         x = [0,1]
@@ -424,6 +425,13 @@ class CalendarViz():
 
         # load in input data.frame that has activiity info 
         df = self.FH.datetime_to_str(self.FH.input_file.copy(deep=True))
+        sub_df = df.loc[df[self.FH.activity_col].eq(this_activity), ]
+
+        # dates we'll utilize to fill in the calendar later 
+        dates_of_acts = sub_df[self.FH.date_col].unique().tolist() 
+
+        # parse through dates, and just keep the day 
+        day_of_dates = [int(d.split('-')[2]) for d in dates_of_acts]
 
         # loop through the list of lists, creating text and activity events 
         for week, ax_row in enumerate(axs):
@@ -435,24 +443,11 @@ class CalendarViz():
                             str(self.cal[week][week_day]),
                             verticalalignment='top',
                             horizontalalignment='left')
-
-                    # check which activity events are needed for a given day 
-                    sub_df = df.loc[df[self.FH.date_col].eq('{yr}-0{mt}-{d}'.format(yr=self.year, mt=self.month, d=self.cal[week][week_day])), ]
-                    day_of_acts = sub_df[self.FH.activity_col].unique().tolist() 
-
-                    # calculate how many columms and loop through the length 
-                    num_cols = len(day_of_acts)
-
+                    this_day = (week * 7) + week_day
+                    if (self.cal[week][week_day] in day_of_dates): 
+                        ax.fill_between([0,1], y, y2, where=(y2<=y), color='green')
                 # add any additional events/text to the calendar      
                 contents = "\n".join(self.events[week][week_day])
-
-                # the data points should be determined based on how many activities exist for a given day 
-                #for this_act in day_of_acts: 
-                #    pass 
-                ax.plot(x, y, color='white') 
-                ax.plot(x, y2, color='white')
-                ax.fill_between([0,0.5], y, y2, where=(y2<=y))
-                ax.fill_between([0.5,1], y, y2, where= (y2<=y)) 
                 
                 ax.text(.03, .85, contents,
                         verticalalignment='top',
@@ -485,10 +480,11 @@ class SummStatScreen(Screen):
     def display_calendar(self, this_activity): 
         '''
         '''
+        # NOTE: this should default to current date 
         calv = CalendarViz(2022, 1)
         # calv.add_activity_event(1, 'first date')
         #  calv.add_activity_event(2, 'this is James. he likes to program once in awhile, but he really wanted to be a dancef.')
-        calv.show() 
+        calv.show('meditate') 
 
 
         self.ids.cal_summary.add_widget(FigureCanvasKivyAgg(plt.gcf()))
@@ -548,6 +544,7 @@ class SummStatScreen(Screen):
         dates_of_streak = streak_df.loc[streak_df['group_series'].isin(streak_group), 'date_inserted'].unique().tolist() 
         
         # return tuple 
+        # import pdb; pdb.set_trace()
         return (highest_streak, dates_of_streak)
 
     def get_longest_streak_dict(self): 
@@ -653,7 +650,7 @@ class FreqHistPlotScreen(Screen):
         self.PA = PlotAesthetics()
 
         # schedule and run everything after deploying/build 
-        # Clock.schedule_once(self.plot_freq_hist)
+        Clock.schedule_once(self.plot_freq_hist)
 
     
     def plot_freq_hist(self, *args): 
@@ -693,7 +690,7 @@ class TotalsBarPlotScreen(Screen):
         self.PA = PlotAesthetics()
 
         # schedule and run everything after deploying/build 
-        # Clock.schedule_once(self.create_bar_plot_total)
+        Clock.schedule_once(self.create_bar_plot_total)
 
     def create_bar_plot_total(self, *args): 
         '''
@@ -731,7 +728,7 @@ class LinePlotScreen(Screen):
         
 
         # schedule and run everything after deploying/build 
-        # Clock.schedule_once(self.create_line_plot)
+        Clock.schedule_once(self.create_line_plot)
 
 
     def create_line_plot(self, *args): 
@@ -774,7 +771,7 @@ class StackedBoxPlotScreen(Screen):
         self.PA = PlotAesthetics() 
 
         # schedule and run everything after deploying/build 
-        # Clock.schedule_once(self.create_stacked_bar_plot)
+        Clock.schedule_once(self.create_stacked_bar_plot)
 
     def create_stacked_bar_plot(self, *args): 
         ''' stacked bar plots to visualize proportion of time spent among different activities 

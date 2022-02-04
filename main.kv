@@ -108,8 +108,8 @@ WindowManager:
         
         Label: # longest streak 
             text:  
-                #'longest streak: {}'.format(root.get_consecutive_streak_by_activity('meditate'))  
-                'dates of streak: {}'.format(root.get_longest_streak_dates('meditate')) 
+                'longest streak: {} days'.format(root.get_consecutive_streak_by_activity('meditate')[0])  
+                # 'dates of streak: {}'.format(root.get_longest_streak_dates('meditate')) 
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
         Label: # mean stat
