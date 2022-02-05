@@ -64,6 +64,18 @@ class UI():
         self.month_names = '''January February March April
                               May June July August
                               September October November December'''.split()
+        self.int_month_dict = {'January' : 1,
+                               'February' : 2,
+                               'March' : 3,
+                               'April' : 4, 
+                               'May' : 5,
+                               'June' : 6, 
+                               'July' : 7, 
+                               'August' : 8,
+                               'September' : 9, 
+                               'October' : 10, 
+                               'November' : 11,
+                               'December' : 12}
 
     def play_button_press(self): 
         sound = SoundLoader.load(self.onpress_button_sound_fpath)
@@ -442,7 +454,7 @@ class CalendarViz():
         
         # parse through dates, and just keep the day 
         day_of_dates = [int(str(d).split('-')[2]) for d in dates_of_acts]
-        
+
         # loop through the list of lists, creating text and activity events 
         for week, ax_row in enumerate(axs):
             for week_day, ax in enumerate(ax_row):
@@ -508,7 +520,6 @@ class SummStatScreen(Screen):
 
     def update_cal(self, this_activity): 
         self.remove_cal()
-        print(self.year)
         self.display_calendar(this_activity) 
 
 
@@ -521,8 +532,8 @@ class SummStatScreen(Screen):
 
         # update summary stats 
         self.ids.stat_longest_streak.text = 'longest streak: {} days'.format(self.get_consecutive_streak_by_activity(self.summ_activity, self.year, self.month)[0])
-        self.ids.stat_mean.text = 'avg time: {} sec'.format(round(self.get_activity_mean(self.summ_activity), 2))
-        self.ids.stat_std_dev.text = 'std dev: {}'.format(round(self.calculate_std(self.summ_activity), 2))
+        self.ids.stat_mean.text = 'avg time: {} seconds'.format(round(self.get_activity_mean(self.summ_activity), 2))
+        self.ids.stat_std_dev.text = 'std dev: {} seconds'.format(round(self.calculate_std(self.summ_activity), 2))
 
         # update calendar view 
         self.update_cal(value)
@@ -536,8 +547,8 @@ class SummStatScreen(Screen):
 
         # update summary stats and calendar 
         self.ids.stat_longest_streak.text = 'longest streak: {} days'.format(self.get_consecutive_streak_by_activity(self.summ_activity, self.year, self.month)[0])
-        self.ids.stat_mean.text = 'avg time: {} sec'.format(round(self.get_activity_mean(self.summ_activity), 2))
-        self.ids.stat_std_dev.text = 'std dev: {}'.format(round(self.calculate_std(self.summ_activity), 2))
+        self.ids.stat_mean.text = 'avg time: {} seconds'.format(round(self.get_activity_mean(self.summ_activity), 2))
+        self.ids.stat_std_dev.text = 'std dev: {} seconds'.format(round(self.calculate_std(self.summ_activity), 2))
 
         self.update_cal(self.summ_activity)
 
@@ -546,12 +557,13 @@ class SummStatScreen(Screen):
         '''
         '''
         self.ids.cal_month_label.text = 'Month:'
-        self.month = int(value)
+        self.month = self.ui.int_month_dict[value]
+        
 
         # update summary stats and calendar
         self.ids.stat_longest_streak.text = 'longest streak: {} days'.format(self.get_consecutive_streak_by_activity(self.summ_activity, self.year, self.month)[0])
-        self.ids.stat_mean.text = 'avg time: {} sec'.format(round(self.get_activity_mean(self.summ_activity), 2))
-        self.ids.stat_std_dev.text = 'std dev: {}'.format(round(self.calculate_std(self.summ_activity), 2))
+        self.ids.stat_mean.text = 'avg time: {} seconds'.format(round(self.get_activity_mean(self.summ_activity), 2))
+        self.ids.stat_std_dev.text = 'std dev: {} seconds'.format(round(self.calculate_std(self.summ_activity), 2))
         
         self.update_cal(self.summ_activity) 
 
@@ -567,6 +579,15 @@ class SummStatScreen(Screen):
         mean = df[self.FH.time_col].mean() 
         return mean 
 
+    def calculate_std(self, this_activity): 
+        '''
+        '''
+        df = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), ]
+        df.index = pd.to_datetime(df[self.FH.date_col])
+        df.drop(columns=self.FH.date_col, inplace=True)
+        df = df[(df.index.month == self.month) & (df.index.year == self.year)].reset_index()
+        std_dev = df[self.FH.time_col].std() 
+        return std_dev 
 
     def get_activity_max_time_entry(self, this_activity): 
         ''' Most time spent doing activities 
@@ -601,6 +622,8 @@ class SummStatScreen(Screen):
         date_entries.index = pd.to_datetime(date_entries[self.FH.date_col])
         date_entries.drop(columns=self.FH.date_col, inplace=True)
         date_entries = date_entries[(date_entries.index.month == self.month) & (date_entries.index.year == self.year)].reset_index()
+        
+        # TODO: force users to select activity first 
         if (len(date_entries) == 0): 
             print('BAD USER XP')
             import pdb; pdb.set_trace() 
@@ -668,13 +691,6 @@ class SummStatScreen(Screen):
         ''' Returns a string that specifies the range of dates (i.e 01/01/2021-01/09/2021)
         '''
         return 
-
-
-    def calculate_std(self, this_activity): 
-        '''
-        '''
-        std_dev = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), self.FH.time_col].std()
-        return std_dev 
 
 
     def generate_summary_stats(self): 
