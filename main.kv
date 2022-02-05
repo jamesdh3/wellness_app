@@ -92,14 +92,54 @@ WindowManager:
                 root.manager.current = 'main'
     
     GridLayout: # activity name goes here 
-        cols: 1 
+        cols: 2 
         pos_hint: {'top': 0.9} 
         size_hint: (1, .1)  
         Label: 
-            text: 'meditate' 
+            id: summ_label
+            text: 'Select an activity to display summary data' 
             color:
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
 
+        Spinner: # activity name goes here 
+            id: spinner_id
+            text: "Click Here" 
+            values: ['meditate', 'walk_dog', 'workout'] 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[0]) 
+            on_text: root.spinner_clicked_activity(spinner_id.text)
+
+        
+        Label: 
+            id: cal_year_label
+            text: 'Select Year' 
+            color:
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+
+        Spinner: # activity name goes here 
+            id: year_spinner
+            text: "Click Here" 
+            values: ['2021','2022'] 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[0]) 
+            on_text: root.spinner_clicked_year(year_spinner.text)
+
+        Label: 
+            id: cal_month_label
+            text: 'Select Month' 
+            color:
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+
+        Spinner: # activity name goes here 
+            id: month_spinner
+            text: "Click Here" 
+            values: ['1', '2'] 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[0]) 
+            on_text: root.spinner_clicked_month(month_spinner.text)
     
     GridLayout: # other summary stats 
         cols: 3 
@@ -107,19 +147,15 @@ WindowManager:
         size_hint: (1, 0.1) 
         
         Label: # longest streak 
-            text:  
-                'longest streak: {} days'.format(root.get_consecutive_streak_by_activity('meditate')[0])  
-                # 'dates of streak: {}'.format(root.get_longest_streak_dates('meditate')) 
+            id: stat_longest_streak
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
         Label: # mean stat
-            text: 
-                'avg time: {} (sec)'.format(round(root.get_activity_mean('meditate'), 2)) 
+            id: stat_mean
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
         Label: # std deviation stat 
-            text: 
-                'standard deviation: {} (sec)'.format(round(root.calculate_std('meditate'),2))  
+            id: stat_std_dev 
             color: 
                 utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
 
@@ -127,18 +163,6 @@ WindowManager:
         pos_hint : {'top' : 0.7} 
         size_hint: (1, 0.6) 
         id: cal_summary
-
-    GridLayout: # choose different activities 
-        cols: 3
-        pos_hint: {'top':0.1}
-        size_hint: (1, 0.1) 
-        Button: # 
-            text: 'this is activity 1' 
-        Button: 
-            text: 'this is activity 2' 
-        Button: 
-            text: 'this is activity 3'
-
     
 
 

@@ -1,5 +1,3 @@
-
-
 # -- Libraries 
 
 # kivy stuff 
@@ -15,11 +13,9 @@ from kivy.clock import Clock # allows me to schedule a function in the future
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg 
 from kivy.properties import ObjectProperty
 
-
 # plotting libraries 
 import matplotlib.pyplot as plt 
 from matplotlib.dates import DateFormatter
-
 
 # we're going to want to use some pandas for data manipulation and viz 
 # NOTE: will need to look at how ggplot and phone apps work together 
@@ -27,7 +23,7 @@ import pandas as pd
 import numpy as np 
 
 # handling dates  
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta, date
 import time 
 
 # creating calendar viz 
@@ -124,7 +120,7 @@ class FileHandler():
         # info on input file 
         self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype), parse_dates=[self.date_col])
         self.input_file = self.format_date_axis() 
-
+        print('loading file')
         self.file_cols = self.input_file.columns 
         self.activities = self.list_activities(self.input_file) 
 
@@ -169,6 +165,16 @@ class FileHandler():
         # replace and return 
         df[self.date_col] = date_str 
         return df
+
+    def parse_date_col(self, df): 
+        ''' parse out year-month-day into separate columns 
+        '''
+        pass 
+
+    def subset_by_date(year, month): 
+        '''
+        '''
+        pass 
 
     def list_activities(self, input_df): 
         '''
@@ -408,7 +414,7 @@ class CalendarViz():
         self.events[week][w_day].append(this_activity)
         
 
-    def show(self, this_activity):
+    def show(self, this_activity, this_year, this_month):
         ''' create the calendar
         '''
         x = [0,1]
@@ -423,16 +429,20 @@ class CalendarViz():
         # set backgrouund color of calendar; match it with the rest of the UI 
         f.set_facecolor(self.UI.hex_background)
 
-        # load in input data.frame that has activiity info 
-        df = self.FH.datetime_to_str(self.FH.input_file.copy(deep=True))
-        sub_df = df.loc[df[self.FH.activity_col].eq(this_activity), ]
+        # load in input data.frame that has activiity info; makesure date_inserted is in the correct format 
+        df = self.FH.input_file 
+        df.index = pd.to_datetime(df['date_inserted'])
+
+        # subset to activity
+        sub_df = df.loc[(df[self.FH.activity_col].eq(this_activity)),]
+        sub_df = sub_df[(sub_df.index.month == this_month) & (sub_df.index.year == this_year)]
 
         # dates we'll utilize to fill in the calendar later 
         dates_of_acts = sub_df[self.FH.date_col].unique().tolist() 
-
+        
         # parse through dates, and just keep the day 
-        day_of_dates = [int(d.split('-')[2]) for d in dates_of_acts]
-
+        day_of_dates = [int(str(d).split('-')[2]) for d in dates_of_acts]
+        
         # loop through the list of lists, creating text and activity events 
         for week, ax_row in enumerate(axs):
             for week_day, ax in enumerate(ax_row):
@@ -464,37 +474,97 @@ class CalendarViz():
 class SummStatScreen(Screen): 
     ui = UI() 
     dm = DataManager()
- 
+
 
     def __init__(self, **kwargs): 
         super(SummStatScreen, self).__init__(**kwargs) 
         self.FH = FileHandler() 
-
+        self.summ_activity = 'meditate' # default value that can change 
         self.summary_stat_cols = ['mean','highest_time','highest_time_date','longest_streak','dates_of_streak']
+        
+        self.year = date.today().year
+        self.month = date.today().month
 
 
         # schedule any plots and viz stuff 
-        Clock.schedule_once(self.display_calendar)
+        # plot no data on calendar by default 
+        # self.calendar = CalendarViz(2022, 1).show('meditate')
+        # Clock.schedule_once(self.display_calendar)
 
+    def remove_cal(self): 
+        ''' Removes widget from calendar view layout 
+            NOTE: id for calendar is currently set to "cal_summary" 
+        '''
+        self.ids.cal_summary.clear_widgets()
 
     def display_calendar(self, this_activity): 
         '''
         '''
         # NOTE: this should default to current date 
-        calv = CalendarViz(2022, 1)
-        # calv.add_activity_event(1, 'first date')
-        #  calv.add_activity_event(2, 'this is James. he likes to program once in awhile, but he really wanted to be a dancef.')
-        calv.show('meditate') 
-
-
+        calv = CalendarViz(self.year, self.month)
+        calv.show(this_activity, self.year, self.month) 
         self.ids.cal_summary.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+
+
+    def update_cal(self, this_activity): 
+        self.remove_cal()
+        print(self.year)
+        self.display_calendar(this_activity) 
+
+
+    def spinner_clicked_activity(self, value): 
+        ''' This will be an event handler that will change the screen only if a dropdown selection has been changed in the summary screen 
+        '''
+        # set activity text 
+        self.ids.summ_label.text = 'Activity:'
+        self.summ_activity = value 
+
+        # update summary stats 
+        self.ids.stat_longest_streak.text = 'longest streak: {} days'.format(self.get_consecutive_streak_by_activity(self.summ_activity, self.year, self.month)[0])
+        self.ids.stat_mean.text = 'avg time: {} sec'.format(round(self.get_activity_mean(self.summ_activity), 2))
+        self.ids.stat_std_dev.text = 'std dev: {}'.format(round(self.calculate_std(self.summ_activity), 2))
+
+        # update calendar view 
+        self.update_cal(value)
+
+
+    def spinner_clicked_year(self, value): 
+        '''
+        '''
+        self.ids.cal_year_label.text = 'Year:' 
+        self.year = int(value) 
+
+        # update summary stats and calendar 
+        self.ids.stat_longest_streak.text = 'longest streak: {} days'.format(self.get_consecutive_streak_by_activity(self.summ_activity, self.year, self.month)[0])
+        self.ids.stat_mean.text = 'avg time: {} sec'.format(round(self.get_activity_mean(self.summ_activity), 2))
+        self.ids.stat_std_dev.text = 'std dev: {}'.format(round(self.calculate_std(self.summ_activity), 2))
+
+        self.update_cal(self.summ_activity)
+
+
+    def spinner_clicked_month(self, value): 
+        '''
+        '''
+        self.ids.cal_month_label.text = 'Month:'
+        self.month = int(value)
+
+        # update summary stats and calendar
+        self.ids.stat_longest_streak.text = 'longest streak: {} days'.format(self.get_consecutive_streak_by_activity(self.summ_activity, self.year, self.month)[0])
+        self.ids.stat_mean.text = 'avg time: {} sec'.format(round(self.get_activity_mean(self.summ_activity), 2))
+        self.ids.stat_std_dev.text = 'std dev: {}'.format(round(self.calculate_std(self.summ_activity), 2))
+        
+        self.update_cal(self.summ_activity) 
 
 
     def get_activity_mean(self, this_activity): 
         '''
         '''
         # subset to rows with activity 
-        mean = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), self.FH.time_col].mean()
+        df = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), ]
+        df.index = pd.to_datetime(df[self.FH.date_col])
+        df.drop(columns=self.FH.date_col, inplace=True)
+        df = df[(df.index.month == self.month) & (df.index.year == self.year)].reset_index()
+        mean = df[self.FH.time_col].mean() 
         return mean 
 
 
@@ -522,18 +592,24 @@ class SummStatScreen(Screen):
         pass
 
 
-    def get_consecutive_streak_by_activity(self, this_activity): 
+    def get_consecutive_streak_by_activity(self, this_activity, year=None, month=None): 
         ''' Given an activity, return the longest streak(s) and dates of streak(s)
 
             NOTE: if there are more than 1 streak, return a list of lists
         '''
-
-        date_entries = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), self.FH.date_col].drop_duplicates()
-        sorted_dates = date_entries.sort_values()
-
-        streak_list = [datetime.strptime(str(d), '%Y-%m-%d').date() for d in sorted_dates]
+        date_entries = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), ]
+        date_entries.index = pd.to_datetime(date_entries[self.FH.date_col])
+        date_entries.drop(columns=self.FH.date_col, inplace=True)
+        date_entries = date_entries[(date_entries.index.month == self.month) & (date_entries.index.year == self.year)].reset_index()
+        if (len(date_entries) == 0): 
+            print('BAD USER XP')
+            import pdb; pdb.set_trace() 
+        sorted_dates = date_entries.sort_values(by=self.FH.date_col)[self.FH.date_col].tolist()
+        streak_list = [d.date() for d in sorted_dates]
         streak_df = pd.DataFrame() 
         streak_df[self.FH.date_col] = streak_list 
+
+        ## NOTE: there are issues when the subset chosen is blank. should make sure this is not possible for the user to experience 
         streak_df['group_series'] = (streak_df.diff() > pd.Timedelta('1 day')).cumsum() # NOTE: need better check I think 
  
         counts = streak_df.groupby('group_series').count()['date_inserted'].reset_index()
@@ -544,7 +620,6 @@ class SummStatScreen(Screen):
         dates_of_streak = streak_df.loc[streak_df['group_series'].isin(streak_group), 'date_inserted'].unique().tolist() 
         
         # return tuple 
-        # import pdb; pdb.set_trace()
         return (highest_streak, dates_of_streak)
 
     def get_longest_streak_dict(self): 
@@ -650,7 +725,7 @@ class FreqHistPlotScreen(Screen):
         self.PA = PlotAesthetics()
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.plot_freq_hist)
+        #Clock.schedule_once(self.plot_freq_hist)
 
     
     def plot_freq_hist(self, *args): 
@@ -690,7 +765,7 @@ class TotalsBarPlotScreen(Screen):
         self.PA = PlotAesthetics()
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_bar_plot_total)
+        # Clock.schedule_once(self.create_bar_plot_total)
 
     def create_bar_plot_total(self, *args): 
         '''
@@ -728,7 +803,7 @@ class LinePlotScreen(Screen):
         
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_line_plot)
+        # Clock.schedule_once(self.create_line_plot)
 
 
     def create_line_plot(self, *args): 
@@ -771,7 +846,7 @@ class StackedBoxPlotScreen(Screen):
         self.PA = PlotAesthetics() 
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_stacked_bar_plot)
+        # Clock.schedule_once(self.create_stacked_bar_plot)
 
     def create_stacked_bar_plot(self, *args): 
         ''' stacked bar plots to visualize proportion of time spent among different activities 
@@ -824,11 +899,6 @@ class StackedBoxPlotScreen(Screen):
 """        
 kv = Builder.load_file('main.kv')
 class MyMainApp(App):
-    def parse_data(): 
-        '''
-        '''
-        pass 
-
     def build(self): 
         return kv
         
