@@ -130,19 +130,43 @@ class FileHandler():
     UI = UI() 
     def __init__(self, **kwargs): # note could initialize on file_name s
         # info on input file 
-        self.input_file = pd.read_csv('{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype), parse_dates=[self.date_col])
-        self.input_file = self.format_date_axis() 
-        print('loading file')
-        self.file_cols = self.input_file.columns 
-        self.activities = self.list_activities(self.input_file) 
+        self.input_file = '{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype)
+        print('loading file') 
+        #self.activities = self.list_activities(self.input_file) 
 
-        color_map = self._assign_activity_colors() 
+        #color_map = self._assign_activity_colors() 
+
+    """
+    def format_date_axis(self): 
+        ''' for plotting purposes - remove the time stamp from date-inserted  
+        '''
+        self.input_file[self.date_col] = self.input_file[self.date_col].dt.date
+        return self.input_file 
+    """
 
     def load(self): 
         ''' Loads input file to be used for plotting 
         '''
-        pass 
+        return pd.read_csv(self.input_file, parse_dates=[self.date_col])
 
+    def get_input_file_cols(self): 
+        '''
+        '''
+        return self.load().columns
+
+    def get_activities(self): 
+        '''
+        '''
+        self.load()[self.activity_col].unique().tolist()
+        return 
+
+    """
+    def list_activities(self, input_df): 
+
+        list_act = input_df[self.activity_col].unique().tolist()
+        act_no_nans = [x for x in list_act if str(x) != 'nan'] 
+        return act_no_nans 
+     
     def _assign_activity_colors(self): 
         ''' creates a dictionary where key value is an activity; and value 
             is 
@@ -155,18 +179,13 @@ class FileHandler():
         for act in self.activities: 
             color_dict[act] = self.UI.hex_palette[act_list.index(act)]
         return color_dict
-
+    """
 
     def check_acceptable_activities(self, this_activity): 
         '''
         ''' 
         pass 
     
-    def format_date_axis(self): 
-        ''' for plotting purposes - remove the time stamp from date-inserted  
-        '''
-        self.input_file[self.date_col] = self.input_file[self.date_col].dt.date
-        return self.input_file 
 
     def datetime_to_str(self, df): 
         ''' converts a datetime.date column into str format
@@ -193,12 +212,7 @@ class FileHandler():
         '''
         pass 
 
-    def list_activities(self, input_df): 
-        '''
-        '''
-        list_act = input_df[self.activity_col].unique().tolist()
-        act_no_nans = [x for x in list_act if str(x) != 'nan'] 
-        return act_no_nans 
+
 
 
 """ Any and all data formatting done to input data/database
@@ -251,41 +265,52 @@ class DataManager(FileHandler):
         list_of_dates = []
         for i in range(delta.days + 1): 
             day = day1 + timedelta(days=i) 
-            list_of_dates += [day] 
+            list_of_dates += [datetime.date(day)] 
         return list_of_dates 
 
 
-    def fill_activity_data_holes(self): 
+    def fill_activity_data_holes(self, df): 
         ''' Fills in gaps of dates with 0 time elapsed (any date between min and max date)
 
             NOTE: could generalize and ask for column of interest as well 
             NOTE: should take some input df 
         '''
 
+        print('filling...')
         # get dates and time for activity 
-        act_df = self.input_file[[self.activity_col, self.time_col, self.date_col]].reset_index()
+        act_df = df[[self.activity_col, self.time_col, self.date_col]].reset_index()
 
-        # act_df[self.FH.date_col] = act_df[self.FH.date_col].dt.date
+        df[self.date_col] = df[self.date_col].dt.date
 
         # get unique dates; and number of entries 
         min_date = act_df[self.date_col].min()
         max_date = act_df[self.date_col].max()
 
         # get the days between each element in the list 
-        date_list = self.days_diff_list(min_date, max_date)
+        orig_date_list = self.days_diff_list(min_date, max_date)
 
-        # if dates aren't in the orig_dates, insert and create another row with 0 time_elapsed 
-        for a in self.activities:
-            this_act = act_df.loc[act_df[self.activity_col].eq(a), ] 
-            orig_dates = this_act[self.date_col].unique().tolist()
-            for this_date in date_list: 
-                if (this_date not in orig_dates): 
-                    new_entry = {self.activity_col : [str(a)],  
-                                 self.date_col : [this_date], 
-                                 self.time_col : [0]
-                                }
-                    act_df = act_df.append(pd.DataFrame(new_entry))
-        return act_df
+        # create a list of dates that aren't already present in the data for any given activity 
+        for a in df[self.activity_col].unique().tolist():
+            these_act_dates = act_df.loc[act_df[self.activity_col].eq(a), self.date_col].dt.date.unique().tolist()
+
+            remaining_dates = list(set(orig_date_list) - set(these_act_dates))
+
+        # create a data.frame with all the remaining dates 
+        new_df = pd.DataFrame()
+        for a in df[self.activity_col].unique().tolist(): 
+            tmp_df = pd.DataFrame({self.activity_col : [str(a)] * len(remaining_dates),
+                      self.date_col : remaining_dates, 
+                      self.time_col : [0] * len(remaining_dates)
+                      })
+            new_df = pd.concat([new_df, tmp_df], axis=0)
+
+        # now append everything together, 
+        master_df = pd.concat([new_df, df], axis=0)
+
+        # mark duplicates; drop the appropriate entries 
+        master_df['dups'] = 0 
+        master_df.loc[master_df.duplicated(subset=[self.activity_col, self.date_col]), 'dups'] = 1 
+        return master_df 
 
 
 """ Class to handle making the graphs look aesthetically pleasing 
@@ -745,7 +770,7 @@ class FreqHistPlotScreen(Screen, FileHandler):
         '''
         this_activity = 'meditate'
         freq_plot, fx = plt.subplots() 
-        input = self.input_file.copy(deep=True)
+        input = self.load().copy(deep=True)
         sub = input.loc[input[self.activity_col].eq(this_activity), ]
 
         # round to the nearest second 
@@ -780,9 +805,9 @@ class TotalsBarPlotScreen(Screen, FileHandler):
         '''
         '''
         line_plot, bx = plt.subplots() 
-        this_input = self.DM.fill_activity_data_holes()
+        this_input = self.load()
         col_looper = 0 
-        for a in self.activities: 
+        for a in this_input[self.activity_col].unique().tolist(): 
             bx.bar(str(a), # groups (x-axis) 
                 this_input.loc[this_input[self.activity_col].eq(a), self.time_col], # values 
                 0.35, # assigning width 
@@ -821,8 +846,8 @@ class LinePlotScreen(Screen, FileHandler):
         line_plot, lx = plt.subplots() 
 
         # loop through each activity 
-        plot_df = self.DM.fill_activity_data_holes()
-        for a in self.activities: 
+        plot_df = self.load() #self.DM.fill_activity_data_holes(self.load())
+        for a in plot_df[self.activity_col].unique().tolist(): 
             tmp_vals = plot_df.loc[plot_df['activity'].eq(a), ].sort_values(by=self.date_col)
 
             # group the vals by date; 
@@ -863,8 +888,9 @@ class StackedBoxPlotScreen(Screen, FileHandler):
             # need to check for squareness on dates for each activityy 
         '''
         stack_plot, sx = plt.subplots()
-        input_df = self.DM.fill_activity_data_holes()
-        for a in self.activities:
+        input_df = self.DM.fill_activity_data_holes(self.load())
+        activity_list = input_df[self.activity_col].unique().tolist()
+        for a in activity_list:
             # subset to activity and sort by date  
             plot_df = input_df.loc[input_df[self.activity_col].eq(a), ].sort_values(by=self.date_col)
 
@@ -875,7 +901,7 @@ class StackedBoxPlotScreen(Screen, FileHandler):
             # do some formatting of x-axis (dates) 
             x_vals = plot_df.loc[plot_df[self.activity_col].eq(a), self.date_col].tolist() 
             x_vals = [str(x) for x in x_vals]
-            if (self.activities.index(a) == 0): 
+            if (activity_list.index(a) == 0): 
                 bottom_vals  = np.array(plot_df.loc[plot_df[self.activity_col].eq(a), self.time_col])
                 sx.bar(x_vals, # groups (x-axis) 
                     plot_df.loc[plot_df[self.activity_col].eq(a), self.time_col], # values 
@@ -884,7 +910,7 @@ class StackedBoxPlotScreen(Screen, FileHandler):
                     color= self.PA.color_activity_dict[a]
                 )
             else: 
-                prev_activity = self.activities[self.activities.index(a) - 1] 
+                prev_activity = activity_list[activity_list.index(a) - 1] 
                 sx.bar(x_vals, # groups (x-axis) 
                     plot_df.loc[plot_df[self.activity_col].eq(a), self.time_col], # values 
                     0.35, # assigning width 
