@@ -276,7 +276,6 @@ class DataManager(FileHandler):
             NOTE: should take some input df 
         '''
 
-        print('filling...')
         # get dates and time for activity 
         act_df = df[[self.activity_col, self.time_col, self.date_col]].reset_index()
 
@@ -289,18 +288,12 @@ class DataManager(FileHandler):
         # get the days between each element in the list 
         orig_date_list = self.days_diff_list(min_date, max_date)
 
-        # create a list of dates that aren't already present in the data for any given activity 
-        for a in df[self.activity_col].unique().tolist():
-            these_act_dates = act_df.loc[act_df[self.activity_col].eq(a), self.date_col].dt.date.unique().tolist()
-
-            remaining_dates = list(set(orig_date_list) - set(these_act_dates))
-
         # create a data.frame with all the remaining dates 
         new_df = pd.DataFrame()
         for a in df[self.activity_col].unique().tolist(): 
-            tmp_df = pd.DataFrame({self.activity_col : [str(a)] * len(remaining_dates),
-                      self.date_col : remaining_dates, 
-                      self.time_col : [0] * len(remaining_dates)
+            tmp_df = pd.DataFrame({self.activity_col : [str(a)] * len(orig_date_list),
+                      self.date_col : orig_date_list, 
+                      self.time_col : [0] * len(orig_date_list)
                       })
             new_df = pd.concat([new_df, tmp_df], axis=0)
 
@@ -310,6 +303,7 @@ class DataManager(FileHandler):
         # mark duplicates; drop the appropriate entries 
         master_df['dups'] = 0 
         master_df.loc[master_df.duplicated(subset=[self.activity_col, self.date_col]), 'dups'] = 1 
+        master_df = master_df.loc[master_df['dups'].eq(0), ]
         return master_df 
 
 
