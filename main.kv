@@ -206,9 +206,10 @@ WindowManager:
             size: self.size
 
     GridLayout: 
-        cols: 2
+        cols: 1
         size_hint: 0.1, 0.1 
         pos_hint: {'top': 1} 
+
         Button: 
             background_normal: ''
             background_color: 
@@ -222,10 +223,28 @@ WindowManager:
                 root.UI.play_button_back()
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'viz_select_screen'
+    GridLayout: 
+        cols: 2
+        size_hint: 1, 0.1
+        pos_hint: {'top': .9} 
+        Label: 
+            id: line_month_label
+            text: 'Select an activity to display summary data' 
+            color:
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[1])
+        Spinner: # activity name goes here 
+            id: spinner_line_month
+            text: "Click Here" 
+            values: root.ui.month_names
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_analogous_colors[0]) 
+            on_text: root.line_plot_spinner_clicked(spinner_line_month.text)
+            
     BoxLayout:
         id: line_plot_fig
-        size_hint_y: 0.9 
-        pos_hint: {'top': 0.9}
+        size_hint_y: 0.8 
+        pos_hint: {'top': 0.8}
 
 
     
@@ -285,10 +304,28 @@ WindowManager:
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'viz_select_screen'
     
+    GridLayout: 
+        cols: 2
+        size_hint: 1, 0.1 
+        pos_hint: {'top': 0.9}
+        Label: 
+            id: spinner_freq_activity
+            text: 'Select an activity to display distribution' 
+            color:
+                utils.get_color_from_hex(root.UI.hex_analogous_colors[1])
+        Spinner: # activity name goes here 
+            id: spinner_freq_activity
+            text: "Click Here" 
+            values: root.get_activities()
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_analogous_colors[0]) 
+            on_text: root.freq_activity_spinner_clicked(spinner_freq_activity.text)
+
     BoxLayout:
         id: time_dist_fig
-        size_hint_y: 0.9
-        pos_hint: {'top':0.9}
+        size_hint_y: 0.7
+        pos_hint: {'top':0.7}
 
 <VizSelectScreen>: 
     canvas.before: 
