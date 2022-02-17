@@ -114,7 +114,7 @@ class FileHandler():
         Should be called every time app opens up 
     ''' 
     # file metadata 
-    filename = 'test_db'
+    filename = 'myflow_data'
     filetype = 'csv'
     workdir = '{}/data'.format(os.getcwd())
 
@@ -822,7 +822,6 @@ class LinePlotScreen(Screen, FileHandler):
         lx.set_title('Time spent over time')
 
         line_plot.autofmt_xdate() 
-        # lx.fmt_xdata = mdates.DateFormatter('%Y-%m-%d')
         self.ids.line_plot_fig.clear_widgets() 
         self.ids.line_plot_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
@@ -837,13 +836,11 @@ class StackedBoxPlotScreen(Screen, FileHandler):
     UI = UI() 
     def __init__(self, **kwargs):                                      
         super(StackedBoxPlotScreen, self).__init__(**kwargs)
-        # self.FH = FileHandler()
         self.DM = DataManager()
         self.PA = PlotAesthetics() 
         self.month_stacked_plot = self.UI.current_month
 
-        # schedule and run everything after deploying/build 
-        # Clock.schedule_once(self.create_stacked_bar_plot)
+
 
     def stacked_bar_plot_spinner_clicked(self, value): 
         ''' This will be an event handler that will change the screen only if a dropdown selection has been changed in the summary screen 
@@ -878,10 +875,9 @@ class StackedBoxPlotScreen(Screen, FileHandler):
             # TODO: add some to data manager
             # groupby and remove duplicate date entries 
             plot_df = plot_df.groupby([self.date_col, self.activity_col])[self.time_col].sum().reset_index() 
-            # import pdb; pdb.set_trace()
+
             # do some formatting of x-axis (dates) 
             x_vals = pd.DatetimeIndex(plot_df[self.date_col]).day
-            #x_vals = plot_df.loc[plot_df[self.activity_col].eq(a), self.date_col].tolist() 
             x_vals = [str(x) for x in x_vals]
             if (activity_list.index(a) == 0): 
                 bottom_vals  = np.array(plot_df.loc[plot_df[self.activity_col].eq(a), self.time_col])
@@ -901,8 +897,6 @@ class StackedBoxPlotScreen(Screen, FileHandler):
                     color=self.PA.color_activity_dict[a]
                 )
                 bottom_vals  = bottom_vals + np.array(plot_df.loc[plot_df[self.activity_col].eq(a), self.time_col])
-
-
 
         # set labels and plot 
         sx.set_ylabel(self.time_col)
