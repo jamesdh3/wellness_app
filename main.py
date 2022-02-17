@@ -44,9 +44,6 @@ class WindowManager(ScreenManager):
 class UI():
     '''
     '''
-    #audio_dir = 'C:/Users/baba/Documents/phone_apps/audio'
-
-
     def __init__(self, **kwargs): 
         self.hex_background = '#DADEE2'
         self.hex_main_color = '#5993A6'
@@ -185,8 +182,6 @@ class FileHandler():
         pass 
 
 
-
-
 """ Any and all data formatting done to input data/database
 """
 class DataManager(FileHandler): 
@@ -301,19 +296,6 @@ class TimerScreen(Screen):
         super(TimerScreen, self).__init__(**kwargs)
         self.FH = FileHandler() # file metadata 
         self.UI = UI() 
-
-        """ don't need this snipet as of now 
-        # create clock and increment time 
-        # NOTE: .1 = 1 sec
-        Clock.schedule_interval(self.increment_time, .1) 
-
-        self.increment_time(0) 
-        """
-
-    def get_entries(self): 
-        '''
-        '''
-        pass 
 
 
     def update_and_save(self, entries): 
