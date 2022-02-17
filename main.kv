@@ -274,10 +274,28 @@ WindowManager:
                 root.manager.transition.direction = 'right'
                 root.manager.current = 'viz_select_screen'
     
+    GridLayout: 
+        cols: 2
+        size_hint: 1, 0.1 
+        pos_hint: {'top': 0.9}
+        Label: 
+            id: stacked_month_label
+            text: 'Select an activity to display stacked bar plot' 
+            color:
+                utils.get_color_from_hex(root.UI.hex_analogous_colors[1])
+        Spinner: # activity name goes here 
+            id: spinner_stacked_month
+            text: "Click Here" 
+            values: root.UI.month_names
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_analogous_colors[0]) 
+            on_text: root.stacked_bar_plot_spinner_clicked(spinner_stacked_month.text)
+
     BoxLayout:
         id: stacked_box_fig
-        size_hint_y: 0.9
-        pos_hint: {'top':0.9}
+        size_hint_y: 0.8
+        pos_hint: {'top':0.8}
 
 <FreqHistPlotScreen>: 
     canvas.before: 

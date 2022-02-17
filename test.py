@@ -1,30 +1,64 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.widgets import CheckButtons
+from kivy.app import App
+from kivy.uix.floatlayout import FloatLayout
+from kivy.factory import Factory
+from kivy.properties import ObjectProperty
+from kivy.uix.popup import Popup
 
-t = np.arange(0.0, 2.0, 0.01)
-s0 = np.sin(2*np.pi*t)
-s1 = np.sin(4*np.pi*t)
-s2 = np.sin(6*np.pi*t)
-
-fig, ax = plt.subplots()
-l0, = ax.plot(t, s0, visible=False, lw=2)
-l1, = ax.plot(t, s1, lw=2)
-l2, = ax.plot(t, s2, lw=2)
-plt.subplots_adjust(left=0.2)
-
-rax = plt.axes([0.05, 0.4, 0.1, 0.15])
-check = CheckButtons(rax, ('2 Hz', '4 Hz', '6 Hz'), (False, True, True))
+import os
 
 
-def func(label):
-    if label == '2 Hz':
-        l0.set_visible(not l0.get_visible())
-    elif label == '4 Hz':
-        l1.set_visible(not l1.get_visible())
-    elif label == '6 Hz':
-        l2.set_visible(not l2.get_visible())
-    plt.draw()
-check.on_clicked(func)
+class LoadDialog(FloatLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
 
-plt.show()
+
+class SaveDialog(FloatLayout):
+    save = ObjectProperty(None)
+    text_input = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+
+
+class Root(FloatLayout):
+    loadfile = ObjectProperty(None)
+    savefile = ObjectProperty(None)
+    text_input = ObjectProperty(None)
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
+
+    def show_load(self):
+        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Load file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def show_save(self):
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Save file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def load(self, path, filename):
+        with open(os.path.join(path, filename[0])) as stream:
+            self.text_input.text = stream.read()
+
+        self.dismiss_popup()
+
+    def save(self, path, filename):
+        with open(os.path.join(path, filename), 'w') as stream:
+            stream.write(self.text_input.text)
+
+        self.dismiss_popup()
+ 
+
+class Editor(App):
+    pass
+
+
+Factory.register('Root', cls=Root)
+Factory.register('LoadDialog', cls=LoadDialog)
+Factory.register('SaveDialog', cls=SaveDialog)
+
+
+if __name__ == '__main__':
+    Editor().run()

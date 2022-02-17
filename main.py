@@ -22,6 +22,9 @@ from matplotlib.dates import DateFormatter
 import pandas as pd 
 import numpy as np 
 
+# some OS stuff 
+import os 
+
 # handling dates  
 from datetime import datetime, timedelta, date
 import time 
@@ -76,6 +79,8 @@ class UI():
                                'October' : 10, 
                                'November' : 11,
                                'December' : 12}
+        self.current_month = date.today().month 
+        self.current_year = date.today().year 
 
     def play_button_press(self): 
         sound = SoundLoader.load(self.onpress_button_sound_fpath)
@@ -114,7 +119,7 @@ class FileHandler():
     # file metadata 
     filename = 'test_db'
     filetype = 'csv'
-    workdir = 'C:/Users/baba/Documents/phone_apps/tmp_db'
+    workdir = '{}/data'.format(os.getcwd())
 
     # file cols 
     activity_col = 'activity'
@@ -131,7 +136,6 @@ class FileHandler():
     def __init__(self, **kwargs): # note could initialize on file_name s
         # info on input file 
         self.input_file = '{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype)
-        print('loading file') 
         #self.activities = self.list_activities(self.input_file) 
 
         #color_map = self._assign_activity_colors() 
@@ -147,6 +151,7 @@ class FileHandler():
     def load(self): 
         ''' Loads input file to be used for plotting 
         '''
+        print('loading file...')
         return pd.read_csv(self.input_file, parse_dates=[self.date_col])
 
     def get_input_file_cols(self): 
@@ -157,8 +162,7 @@ class FileHandler():
     def get_activities(self): 
         '''
         '''
-        self.load()[self.activity_col].unique().tolist()
-        return 
+        return self.load()[self.activity_col].unique().tolist()
 
     """
     def list_activities(self, input_df): 
@@ -276,6 +280,7 @@ class DataManager(FileHandler):
             NOTE: should take some input df 
         '''
 
+        tic = time.perf_counter() 
         # get dates and time for activity 
         act_df = df[[self.activity_col, self.time_col, self.date_col]].reset_index()
 
@@ -302,8 +307,10 @@ class DataManager(FileHandler):
 
         # mark duplicates; drop the appropriate entries 
         master_df['dups'] = 0 
-        master_df.loc[master_df.duplicated(subset=[self.activity_col, self.date_col]), 'dups'] = 1 
+        master_df.loc[(master_df.duplicated(subset=[self.activity_col, self.date_col], keep=False)) & (master_df[self.time_col] == 0), 'dups'] = 1 
         master_df = master_df.loc[master_df['dups'].eq(0), ]
+        toc = time.perf_counter() 
+        print(f"filling in data holes took... {toc - tic} seconds")
         return master_df 
 
 
@@ -414,12 +421,11 @@ NOTE: add some suggested PRs
 class CalendarViz(): 
     UI = UI()
     FH = FileHandler()
-
     def __init__(self, year, month):
         self.year = year
         self.month = month
         self.cal = calendar.monthcalendar(year+1, month) # off by 1 - need to look into 
-        
+        self.df = self.FH.load()
         
         # monthcalendar creates a list of lists for each week
         # Save the events data in the same format
@@ -465,7 +471,7 @@ class CalendarViz():
         f.set_facecolor(self.UI.hex_background)
 
         # load in input data.frame that has activiity info; makesure date_inserted is in the correct format 
-        df = self.FH.input_file 
+        df = self.df
         df.index = pd.to_datetime(df['date_inserted'])
 
         # subset to activity
@@ -473,8 +479,8 @@ class CalendarViz():
         sub_df = sub_df[(sub_df.index.month == this_month) & (sub_df.index.year == this_year)]
 
         # dates we'll utilize to fill in the calendar later 
-        dates_of_acts = sub_df[self.FH.date_col].unique().tolist() 
-        
+        dates_of_acts = sub_df.index.date.tolist() 
+
         # parse through dates, and just keep the day 
         day_of_dates = [int(str(d).split('-')[2]) for d in dates_of_acts]
 
@@ -506,18 +512,18 @@ class CalendarViz():
 
 """ Screen for summary stats 
 """
-class SummStatScreen(Screen): 
+class SummStatScreen(Screen, FileHandler): 
     ui = UI() 
     dm = DataManager()
 
     def __init__(self, **kwargs): 
         super(SummStatScreen, self).__init__(**kwargs) 
-        self.FH = FileHandler() 
         self.summ_activity = 'meditate' # default value that can change 
         self.summary_stat_cols = ['mean','highest_time','highest_time_date','longest_streak','dates_of_streak']
         
         self.year = date.today().year
         self.month = date.today().month
+        self.df = self.load() 
 
     def remove_cal(self): 
         ''' Removes widget from calendar view layout 
@@ -588,29 +594,29 @@ class SummStatScreen(Screen):
         '''
         '''
         # subset to rows with activity 
-        df = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), ]
-        df.index = pd.to_datetime(df[self.FH.date_col])
-        df.drop(columns=self.FH.date_col, inplace=True)
+        df = self.df.loc[self.df['activity'].eq(this_activity), ]
+        df.index = pd.to_datetime(df[self.date_col])
+        df.drop(columns=self.date_col, inplace=True)
         df = df[(df.index.month == self.month) & (df.index.year == self.year)].reset_index()
-        mean = df[self.FH.time_col].mean() 
+        mean = df[self.time_col].mean() 
         return mean 
 
     def calculate_std(self, this_activity): 
         '''
         '''
-        df = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), ]
-        df.index = pd.to_datetime(df[self.FH.date_col])
-        df.drop(columns=self.FH.date_col, inplace=True)
+        df = self.df.loc[self.df['activity'].eq(this_activity), ]
+        df.index = pd.to_datetime(df[self.date_col])
+        df.drop(columns=self.date_col, inplace=True)
         df = df[(df.index.month == self.month) & (df.index.year == self.year)].reset_index()
-        std_dev = df[self.FH.time_col].std() 
+        std_dev = df[self.time_col].std() 
         return std_dev 
 
     def get_activity_max_time_entry(self, this_activity): 
         ''' Most time spent doing activities 
         '''
-        sub = self.FH.input_file.loc[self.FH.input_file[self.FH.activity_col].eq(this_activity), [self.FH.date_col, self.FH.time_col]]
-        max_val = max(sub[self.FH.time_col])
-        max_entry = sub.loc[sub[self.FH.time_col].eq(max_val), ]
+        sub = self.df.loc[self.df[self.activity_col].eq(this_activity), [self.date_col, self.time_col]]
+        max_val = max(sub[self.time_col])
+        max_entry = sub.loc[sub[self.time_col].eq(max_val), ]
         return max_entry
 
 
@@ -620,7 +626,7 @@ class SummStatScreen(Screen):
         this_max = self.get_activity_max_time_entry(this_activity)
 
         # return date(s)
-        return this_max[self.FH.date_col].unique().tolist()
+        return this_max[self.date_col].unique().tolist()
 
 
     def is_next_day(self, start_date, suggested_next_date):
@@ -634,19 +640,19 @@ class SummStatScreen(Screen):
 
             NOTE: if there are more than 1 streak, return a list of lists
         '''
-        date_entries = self.FH.input_file.loc[self.FH.input_file['activity'].eq(this_activity), ]
-        date_entries.index = pd.to_datetime(date_entries[self.FH.date_col])
-        date_entries.drop(columns=self.FH.date_col, inplace=True)
+        date_entries = self.df.loc[self.df['activity'].eq(this_activity), ]
+        date_entries.index = pd.to_datetime(date_entries[self.date_col])
+        date_entries.drop(columns=self.date_col, inplace=True)
         date_entries = date_entries[(date_entries.index.month == self.month) & (date_entries.index.year == self.year)].reset_index()
         
         # TODO: force users to select activity first 
         if (len(date_entries) == 0): 
             print('BAD USER XP')
             import pdb; pdb.set_trace() 
-        sorted_dates = date_entries.sort_values(by=self.FH.date_col)[self.FH.date_col].tolist()
+        sorted_dates = date_entries.sort_values(by=self.date_col)[self.date_col].tolist()
         streak_list = [d.date() for d in sorted_dates]
         streak_df = pd.DataFrame() 
-        streak_df[self.FH.date_col] = streak_list 
+        streak_df[self.date_col] = streak_list 
 
         ## NOTE: there are issues when the subset chosen is blank. should make sure this is not possible for the user to experience 
         streak_df['group_series'] = (streak_df.diff() > pd.Timedelta('1 day')).cumsum() # NOTE: need better check I think 
@@ -666,7 +672,7 @@ class SummStatScreen(Screen):
         '''
         # get all activities, loop and append to dict 
         activity_dict = dict() 
-        for act in self.FH.activities: 
+        for act in self.get_activities(): 
             activity_dict[act] = self.get_consecutive_streak_by_activity(act)[0]
         return activity_dict 
 
@@ -686,7 +692,7 @@ class SummStatScreen(Screen):
 
 
         activity_dict = dict() 
-        for act in self.FH.activities: 
+        for act in self.get_activities(): 
             # get dates and convert to a str of dates 
             streak_dates =  self.get_consecutive_streak_by_activity(act)[1]
             str_streak_dates = [str(s) for s in streak_dates]
@@ -709,32 +715,6 @@ class SummStatScreen(Screen):
         return 
 
 
-    def generate_summary_stats(self): 
-        ''' some summary stats: 
-                - total time per activity (in text) 
-                - avg time per day (for each activity)
-                - ave time per day (doing all activities)
-                - longest streak 
-                - percentage of days elapsed in time frame 
-            should return all stats in table format 
-        '''
-        stats_df = pd.DataFrame(columns=self.summary_stat_cols) 
-        for ac in self.FH.activities: 
-            this_mean = self.get_activity_mean(ac)
-            this_highest_time = int(self.get_activity_max_time_entry(ac)[self.FH.time_col])
-            this_highest_time_date = self.get_activity_max_time_entry(ac)[self.FH.date_col].unique().tolist()
-            this_streak_val = self.get_consecutive_streak_by_activity(ac)[0]
-            this_streak_dates = self.get_consecutive_streak_by_activity(ac)[1] 
-            '''
-            tmp_df = pd.DataFrame(data = {'mean':this_mean, 
-                                          'highest_time' : this_highest_time, 
-                                          'highest_time_date':this_highest_time_date,
-                                          'longest_streak':this_streak_val, 
-                                          'dates_of_streak' : this_streak_dates})
-            stats_df = stats_df.append(tmp_df)  
-            '''
-        return 
-
 
 """ Screen for selecting viz 
 """
@@ -755,30 +735,42 @@ class FreqHistPlotScreen(Screen, FileHandler):
         self.DM = DataManager()  
         self.PA = PlotAesthetics()
 
-        # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.plot_freq_hist)
-
     
-    def plot_freq_hist(self, *args): 
+    def freq_activity_spinner_clicked(self, value): 
+        '''
+        '''
+        self.ids.spinner_freq_activity = "Distribution for activity:"
+        
+        self.plot_freq_hist(this_activity = value)
+        
+
+
+    def freq_plot_spinner_clicked(self, value): 
+        ''' This will be an event handler that will change the screen only if a dropdown selection has been changed in the summary screen 
+        '''
+        # set activity text 
+        self.ids.line_month_label.text = 'Display Month:'
+        self.month_line_plot = self.ui.int_month_dict[value] 
+
+        self.create_line_plot(this_month=value)
+
+    def plot_freq_hist(self, **kwargs): 
         ''' Plots distributio this_activity,n/freq visual for a given activity  
         '''
-        this_activity = 'meditate'
         freq_plot, fx = plt.subplots() 
         input = self.load().copy(deep=True)
-        sub = input.loc[input[self.activity_col].eq(this_activity), ]
 
-        # round to the nearest second 
-
+        if ('this_activity' in kwargs): 
+            sub = input.loc[input[self.activity_col].eq(kwargs['this_activity']), ]
 
         # lets just plot meditation for now
         freq_vals = sub[self.time_col] 
-        fx.hist(freq_vals, bins=range(min(freq_vals), max(freq_vals)+1), color=self.UI.hex_main_color)
+        fx.hist(freq_vals, bins=25, color=self.UI.hex_main_color)
 
-
-        # TODO: format y axis ticks 
-        fx.set_ylabel(self.time_col)
+        fx.set_ylabel('frequency')
         fx.set_xlabel('time in seconds')
-        fx.set_title('Distribution of time entries for {}'.format(this_activity))
+        fx.set_title('Distribution of time entries for {}'.format(kwargs['this_activity']))
+        self.ids.time_dist_fig.clear_widgets() 
         self.ids.time_dist_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
     
 
@@ -821,26 +813,47 @@ class TotalsBarPlotScreen(Screen, FileHandler):
 """
 class LinePlotScreen(Screen, FileHandler): 
 
-    UI = UI() 
+    ui = UI() 
     def __init__(self, **kwargs):                                      
         super(LinePlotScreen, self).__init__(**kwargs)
 
         # self.FH = FileHandler()
         self.DM = DataManager() 
         self.PA = PlotAesthetics() 
-        
+        self.month_line_plot = self.ui.current_month # default to current month 
+        self.year_line_plot = self.ui.current_year
 
-        # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_line_plot)
+        self.month_spinner_var = 'this_month'
+        self.activity_spinner_var = 'this_activity' 
 
 
-    def create_line_plot(self, *args): 
+    def line_plot_spinner_clicked(self, value): 
+        ''' This will be an event handler that will change the screen only if a dropdown selection has been changed in the summary screen 
+        '''
+        # set activity text 
+        self.ids.line_month_label.text = 'Display Month:'
+        self.month_line_plot = self.ui.int_month_dict[value] 
+
+        self.create_line_plot(this_month=value)
+
+
+    def create_line_plot(self, **kwargs): 
         ''' line plots grouped by activity. to easily visualize trends over time 
+
+        NOTE: for now, lazily just plotting the current year
         '''
         line_plot, lx = plt.subplots() 
 
         # loop through each activity 
-        plot_df = self.load() #self.DM.fill_activity_data_holes(self.load())
+        plot_df = self.DM.fill_activity_data_holes(self.load())
+
+        # create date-index for subsetting 
+        plot_df.index = pd.to_datetime(plot_df[self.date_col])
+        plot_df.drop(columns=self.date_col, inplace=True)
+        plot_df = plot_df[(plot_df.index.month == self.month_line_plot) & (plot_df.index.year == self.ui.current_year)].reset_index()
+        
+        # TODO: add clause for activity spinner select 
+
         for a in plot_df[self.activity_col].unique().tolist(): 
             tmp_vals = plot_df.loc[plot_df['activity'].eq(a), ].sort_values(by=self.date_col)
 
@@ -848,8 +861,9 @@ class LinePlotScreen(Screen, FileHandler):
             # there may be scenarios where a person may have multiple entries on a given day 
             tmp_vals = tmp_vals.groupby(self.date_col)[self.time_col].sum().reset_index() 
 
-            x_vals = [str(x) for x in tmp_vals['date_inserted'].unique().tolist()]
+            x_vals = pd.DatetimeIndex(tmp_vals[self.date_col]).day
             y_vals = tmp_vals['time_elapsed'].tolist()
+            # import pdb; pdb.set_trace() 
             lx.plot(x_vals, y_vals, label=a, color=self.PA.color_activity_dict[a])
 
         lx.legend() 
@@ -859,10 +873,14 @@ class LinePlotScreen(Screen, FileHandler):
 
         line_plot.autofmt_xdate() 
         # lx.fmt_xdata = mdates.DateFormatter('%Y-%m-%d')
+        self.ids.line_plot_fig.clear_widgets() 
         self.ids.line_plot_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
 
 """ Screen for proportion plots and bar plot by activity per day  
+
+default view: 
+by week for a select month 
 """
 class StackedBoxPlotScreen(Screen, FileHandler): 
 
@@ -872,17 +890,36 @@ class StackedBoxPlotScreen(Screen, FileHandler):
         # self.FH = FileHandler()
         self.DM = DataManager()
         self.PA = PlotAesthetics() 
+        self.month_stacked_plot = self.UI.current_month
 
         # schedule and run everything after deploying/build 
-        Clock.schedule_once(self.create_stacked_bar_plot)
+        # Clock.schedule_once(self.create_stacked_bar_plot)
 
-    def create_stacked_bar_plot(self, *args): 
+    def stacked_bar_plot_spinner_clicked(self, value): 
+        ''' This will be an event handler that will change the screen only if a dropdown selection has been changed in the summary screen 
+        '''
+        # set activity text 
+        self.ids.stacked_month_label.text = 'Display Month:'
+        self.month_stacked_plot = self.UI.int_month_dict[value] 
+
+        self.create_stacked_bar_plot(this_month=value)
+
+    def create_stacked_bar_plot(self, **kwargs): 
         ''' stacked bar plots to visualize proportion of time spent among different activities 
             NOTE: will need to order these in some fashion 
+
+            NOTE: refactor and just create proportions 
             # need to check for squareness on dates for each activityy 
         '''
+
         stack_plot, sx = plt.subplots()
         input_df = self.DM.fill_activity_data_holes(self.load())
+
+        # create date-index for subsetting 
+        input_df.index = pd.to_datetime(input_df[self.date_col])
+        input_df.drop(columns=self.date_col, inplace=True)
+        input_df = input_df[(input_df.index.month == self.month_stacked_plot) & (input_df.index.year == self.UI.current_year)].reset_index()
+
         activity_list = input_df[self.activity_col].unique().tolist()
         for a in activity_list:
             # subset to activity and sort by date  
@@ -891,9 +928,10 @@ class StackedBoxPlotScreen(Screen, FileHandler):
             # TODO: add some to data manager
             # groupby and remove duplicate date entries 
             plot_df = plot_df.groupby([self.date_col, self.activity_col])[self.time_col].sum().reset_index() 
-
+            # import pdb; pdb.set_trace()
             # do some formatting of x-axis (dates) 
-            x_vals = plot_df.loc[plot_df[self.activity_col].eq(a), self.date_col].tolist() 
+            x_vals = pd.DatetimeIndex(plot_df[self.date_col]).day
+            #x_vals = plot_df.loc[plot_df[self.activity_col].eq(a), self.date_col].tolist() 
             x_vals = [str(x) for x in x_vals]
             if (activity_list.index(a) == 0): 
                 bottom_vals  = np.array(plot_df.loc[plot_df[self.activity_col].eq(a), self.time_col])
@@ -920,7 +958,8 @@ class StackedBoxPlotScreen(Screen, FileHandler):
         sx.set_ylabel(self.time_col)
         sx.set_title('Total time grouped by day')
         sx.legend() 
-        stack_plot.autofmt_xdate() 
+        stack_plot.autofmt_xdate()
+        self.ids.stacked_box_fig.clear_widgets() 
         self.ids.stacked_box_fig.add_widget(FigureCanvasKivyAgg(plt.gcf()))
         
 
