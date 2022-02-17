@@ -55,7 +55,7 @@ class UI():
         self.hex_palette = ['#5993A6', '#5888AA', '#667BA8', '#7A6B9D', '#8C5A88', '#974B6B'] # will need to fix this 
         self.hex_white = '#FFFFFF'
 
-        self.audio_dir = 'C:/Users/baba/Documents/phone_apps/audio'
+        self.audio_dir = '{}/audio'.format(os.getcwd())
         self.onpress_button_sound_fpath = '{}/droplet1.wav'.format(self.audio_dir)
         self.onrelease_button_sound_fpath = '{}/droplet2.wav'.format(self.audio_dir) 
         self.back_button_sound_fpath = '{}/droplet3.wav'.format(self.audio_dir)
@@ -136,17 +136,6 @@ class FileHandler():
     def __init__(self, **kwargs): # note could initialize on file_name s
         # info on input file 
         self.input_file = '{dir}/{fn}.{ft}'.format(dir=self.workdir, fn=self.filename, ft=self.filetype)
-        #self.activities = self.list_activities(self.input_file) 
-
-        #color_map = self._assign_activity_colors() 
-
-    """
-    def format_date_axis(self): 
-        ''' for plotting purposes - remove the time stamp from date-inserted  
-        '''
-        self.input_file[self.date_col] = self.input_file[self.date_col].dt.date
-        return self.input_file 
-    """
 
     def load(self): 
         ''' Loads input file to be used for plotting 
@@ -163,27 +152,6 @@ class FileHandler():
         '''
         '''
         return self.load()[self.activity_col].unique().tolist()
-
-    """
-    def list_activities(self, input_df): 
-
-        list_act = input_df[self.activity_col].unique().tolist()
-        act_no_nans = [x for x in list_act if str(x) != 'nan'] 
-        return act_no_nans 
-     
-    def _assign_activity_colors(self): 
-        ''' creates a dictionary where key value is an activity; and value 
-            is 
-        '''
-        # order activities by time_elapsed 
-        act_list = self.input_file.sort_values(by=self.time_col)[self.activity_col].unique().tolist() 
-
-        # loop through each activity and assign color 
-        color_dict = dict() 
-        for act in self.activities: 
-            color_dict[act] = self.UI.hex_palette[act_list.index(act)]
-        return color_dict
-    """
 
     def check_acceptable_activities(self, this_activity): 
         '''
