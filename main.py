@@ -44,40 +44,59 @@ class WindowManager(ScreenManager):
 class UI():
     '''
     '''
+    ## colors 
+    hex_background = '#FFFFFF'
+    hex_main_color = '#5993A6'
+    hex_complement_color = '#A66C59'
+    hex_analogous_colors = ['#5993A6', '#596DA6', '#59A692']
+    hex_palette = ['#5993A6', '#5888AA', '#667BA8', '#7A6B9D', '#8C5A88', '#974B6B'] # will need to fix this 
+    hex_white = '#FFFFFF'
+
+    ## audio 
+    audio_dir = '{}/audio'.format(os.getcwd())
+    onpress_button_sound_fpath = '{}/droplet1.wav'.format(audio_dir)
+    onrelease_button_sound_fpath = '{}/droplet2.wav'.format(audio_dir) 
+    back_button_sound_fpath = '{}/droplet3.wav'.format(audio_dir)
+    start_timer = '{}/start_timer.wav'.format(audio_dir) 
+    start_timer_sound = SoundLoader.load(start_timer)
+
+    # stuff for summs/calendar view 
+    week_days = 'Sun Mon Tue Wed Thu Fri Sat'.split()
+    month_names = '''January February March April
+                            May June July August
+                            September October November December'''.split()
+    int_month_dict ={'January' : 1,
+                    'February' : 2,
+                    'March' : 3,
+                    'April' : 4, 
+                    'May' : 5,
+                    'June' : 6, 
+                    'July' : 7, 
+                    'August' : 8,
+                    'September' : 9, 
+                    'October' : 10, 
+                    'November' : 11,
+                    'December' : 12
+                    }
+    current_month = date.today().month 
+    current_year = date.today().year 
+
+    personalized_activities = ['meditate','workout','stretch','walk_dog','']
     def __init__(self, **kwargs): 
-        self.hex_background = '#DADEE2'
-        self.hex_main_color = '#5993A6'
-        self.hex_complement_color = '#A66C59'
-        self.hex_analogous_colors = ['#5993A6', '#596DA6', '#59A692']
-        self.hex_palette = ['#5993A6', '#5888AA', '#667BA8', '#7A6B9D', '#8C5A88', '#974B6B'] # will need to fix this 
-        self.hex_white = '#FFFFFF'
+        pass 
 
-        self.audio_dir = '{}/audio'.format(os.getcwd())
-        self.onpress_button_sound_fpath = '{}/droplet1.wav'.format(self.audio_dir)
-        self.onrelease_button_sound_fpath = '{}/droplet2.wav'.format(self.audio_dir) 
-        self.back_button_sound_fpath = '{}/droplet3.wav'.format(self.audio_dir)
-        self.start_timer = '{}/start_timer.wav'.format(self.audio_dir) 
-        self.start_timer_sound = SoundLoader.load(self.start_timer)
 
-        # stuff for summs/calendar view 
-        self.week_days = 'Sun Mon Tue Wed Thu Fri Sat'.split()
-        self.month_names = '''January February March April
-                              May June July August
-                              September October November December'''.split()
-        self.int_month_dict = {'January' : 1,
-                               'February' : 2,
-                               'March' : 3,
-                               'April' : 4, 
-                               'May' : 5,
-                               'June' : 6, 
-                               'July' : 7, 
-                               'August' : 8,
-                               'September' : 9, 
-                               'October' : 10, 
-                               'November' : 11,
-                               'December' : 12}
-        self.current_month = date.today().month 
-        self.current_year = date.today().year 
+    def add_activity(): 
+        '''
+        '''
+        pass 
+
+
+    def delete_activity(): 
+        '''
+        '''
+        pass 
+
 
     def play_button_press(self): 
         sound = SoundLoader.load(self.onpress_button_sound_fpath)
@@ -327,6 +346,13 @@ class TimerScreen(Screen):
                                                                                 fn=self.FH.filename,
                                                                                 ft=self.FH.filetype)
         )
+
+    def timer_activity_spinner_clicked(self, value): 
+        '''        self.ids.spinner_freq_activity = "Distribution for activity:"
+        
+        self.plot_freq_hist(this_activity = value)
+        '''
+        pass 
 
 
     def increment_time(self, interval): 
