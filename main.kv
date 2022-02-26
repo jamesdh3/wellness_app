@@ -472,9 +472,14 @@ WindowManager:
         cols: 2 
         size_hint: 1, 0.1
         pos_hint: {'top': 0.3}
-        TextInput:
-            id: activity_name
-            multiline: False 
+        Spinner: # list of current activities dropdown 
+            id: my_activities
+            text: "Select Activity" 
+            values: root.UI.get_current_activities()
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.UI.hex_main_color) 
+            on_text: root.timer_activity_spinner_clicked(my_activities.text) 
         Label: 
             text : str(round(root.number)) 
             color : root.UI.hex_main_color 
@@ -525,7 +530,7 @@ WindowManager:
                 utils.get_color_from_hex(root.UI.hex_background)
             on_release: 
                 root.stop() 
-                root.update_and_save({root.FH.activity_col: activity_name.text, root.FH.time_col : root.number, root.FH.date_col : root.FH.date, root.FH.time_inserted : root.FH.time}) 
+                root.update_and_save({root.FH.activity_col: my_activities.text, root.FH.time_col : root.number, root.FH.date_col : root.FH.date, root.FH.time_inserted : root.FH.time}) 
 
 
     

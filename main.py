@@ -81,7 +81,8 @@ class UI():
     current_month = date.today().month 
     current_year = date.today().year 
 
-    personalized_activities = ['meditate','workout','stretch','walk_dog','']
+    current_activity_file = '{}/data/current_activities.csv'.format(os.getcwd())
+
     def __init__(self, **kwargs): 
         pass 
 
@@ -89,6 +90,7 @@ class UI():
     def add_activity(): 
         '''
         '''
+
         pass 
 
 
@@ -97,6 +99,10 @@ class UI():
         '''
         pass 
 
+    def get_current_activities(self): 
+        '''
+        '''
+        return pd.read_csv(self.current_activity_file)['my_activities'].unique().tolist() 
 
     def play_button_press(self): 
         sound = SoundLoader.load(self.onpress_button_sound_fpath)
@@ -338,7 +344,8 @@ class TimerScreen(Screen):
         file.to_csv('{dir}/{fn}_{dt}.{ft}'.format(dir=self.FH.workdir, 
                                                   fn=self.FH.filename,
                                                   dt=self.FH.date,
-                                                  ft=self.FH.filetype)
+                                                  ft=self.FH.filetype),
+                                                  index=False
         )
 
         # update & export  
@@ -352,7 +359,7 @@ class TimerScreen(Screen):
         
         self.plot_freq_hist(this_activity = value)
         '''
-        pass 
+        self.ids.my_activities = value
 
 
     def increment_time(self, interval): 
