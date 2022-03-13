@@ -87,18 +87,6 @@ class UI():
         pass 
 
 
-    def add_activity(): 
-        '''
-        '''
-
-        pass 
-
-
-    def delete_activity(): 
-        '''
-        '''
-        pass 
-
     def get_current_activities(self): 
         '''
         '''
@@ -129,6 +117,7 @@ class UI():
 """
 class MainWindow(Screen):
     ui = UI()
+
 
 
 """ Holds information about the file/database and that metadata info
@@ -206,6 +195,44 @@ class FileHandler():
         '''
         pass 
 
+
+class SettingsScreen(Screen): 
+    ui = UI()
+    FH = FileHandler() 
+        
+    def __init__(self, **kwargs):
+        super(SettingsScreen, self).__init__(**kwargs)
+
+
+    def load_activity_file(self): 
+        '''
+        '''
+        return pd.read_csv(self.ui.current_activity_file)
+        
+
+    def add_activity(self): 
+        '''
+        '''
+        # load activity 
+        act_df = self.load_activity_file()
+
+        # append new entry from UI 
+        new_entry = {'my_activities': [self.ids.activity_addition_text.text]}
+        new_df = pd.concat([act_df, pd.DataFrame(new_entry)]).reset_index(drop=True)
+
+        # save to working dir 
+        new_df.to_csv('{}/data/current_activities.csv'.format(os.getcwd())) 
+        
+
+    def delete_activity(self, rm_act): 
+        '''
+        '''
+        act_df = self.load_activity_file()
+
+        act_df = act_df.loc[act_df['my_actities'] != rm_act, ]
+
+        act_df.to_csv('{}/data/current_activities.csv'.format(os.getcwd()))
+        
 
 """ Any and all data formatting done to input data/database
 """

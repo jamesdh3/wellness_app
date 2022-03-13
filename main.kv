@@ -3,6 +3,8 @@
 WindowManager:
     MainWindow:
         name: 'main'
+    SettingsScreen: 
+        name : "settings_screen" 
     SummStatScreen: 
         name : "summ_stats_screen" 
     TimerScreen:
@@ -20,9 +22,27 @@ WindowManager:
 
 
 <MainWindow>:
+
+    GridLayout: 
+        cols: 1 
+        pos_hint: {'top':1}
+        size_hint: 0.1, 0.1
+        Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
+            text: 'Settings' 
+            color: 
+                root.ui.hex_main_color
+            on_press: 
+                root.ui.play_button_press()
+            on_release: 
+                root.ui.play_button_release()
+                root.manager.transition.direction = 'left'
+                root.manager.current = 'settings_screen'
     GridLayout:
         cols: 1 
-        size_hint: 1, 1
+        size_hint: 1, .9
         canvas.before:
             Color:
                 rgb: utils.get_color_from_hex(root.ui.hex_background)
@@ -66,6 +86,64 @@ WindowManager:
                 root.ui.play_button_release()
                 app.root.current = 'viz_select_screen'
                 root.manager.transition.direction = "left"
+
+<SettingsScreen>:
+    canvas.before: 
+        Color:
+            rgb: utils.get_color_from_hex(root.ui.hex_background)
+        Rectangle: 
+            size: self.size
+    GridLayout: # back button 
+        cols: 2
+        size_hint: 0.1, 0.1 
+        pos_hint: {'top': 1} 
+        Button: 
+            background_normal: ''
+            background_color: 
+                utils.get_color_from_hex(root.ui.hex_background)
+            text: 'Back' 
+            color: 
+                root.ui.hex_main_color
+            on_press:
+                root.ui.play_button_press()
+            on_release:  
+                root.ui.play_button_back()
+                root.manager.transition.direction = 'right'
+                root.manager.current = 'main' 
+    GridLayout:
+        cols:2
+        size_hint: 0.3, 0.2
+        pos_hint: {'top': 0.9} 
+        Button:
+            text: "Add an Activity"
+            background_color:
+                utils.get_color_from_hex(root.ui.hex_main_color) 
+            on_press: 
+                root.ui.play_button_press()
+            on_release:
+                root.ui.play_button_release()
+                app.root.current = root.add_activity() #print('i added an activity') 
+                root.manager.transition.direction = "left" 
+        TextInput:
+            id: activity_addition_text
+
+
+    GridLayout: 
+        cols: 2
+        pos_hint: {'top': 0.65}
+        size_hint: 0.3, 0.2 
+        Button:
+            text: "Remove an Activity"
+            background_color:
+                utils.get_color_from_hex(root.ui.hex_main_color) 
+            on_press: 
+                root.ui.play_button_press()
+            on_release:
+                root.ui.play_button_release()
+                app.root.current = print('i removed an activity') 
+                root.manager.transition.direction = "left" 
+        Spinner: 
+
 
 <SummStatScreen>: 
     canvas.before: 
